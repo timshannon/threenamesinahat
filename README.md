@@ -58,3 +58,13 @@ timer runs out
 13. Play continues until all names are chosen and all rounds are played.
 14. Game summary and winning team is shown as well as stats such as who's turn got the most guesses
 15. Option to replay with same team start a new game
+
+
+## Goals
+* Simple
+* No database, everything is tracked in memory
+* No logons, no sessions, no cookies
+* No SSL, run it behind nginx / traefik / apache / etc and let them handle ssl
+* No configuration
+* One command line flag *port*
+* Built entirely with the core Go libraries
