@@ -1,3 +1,7 @@
+// Copyright 2020 Tim Shannon. All rights reserved.
+// Use of this source code is governed by the MIT license
+// that can be found in the LICENSE file.
+
 package server
 
 import (
@@ -12,6 +16,8 @@ import (
 	"github.com/timshannon/threenamesinahat/files"
 )
 
+const defaultCSP = "default-src 'self';font-src fonts.gstatic.com;style-src 'self' fonts.googleapis.com"
+
 type TemplateHandlerFunc func(*templateWriter, *http.Request)
 
 func templateHandler(handler TemplateHandlerFunc, templates ...string) http.HandlerFunc {
@@ -19,7 +25,7 @@ func templateHandler(handler TemplateHandlerFunc, templates ...string) http.Hand
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'")
+		w.Header().Set("Content-Security-Policy", defaultCSP)
 
 		handler(&templateWriter{
 			ResponseWriter: w,
@@ -30,7 +36,6 @@ func templateHandler(handler TemplateHandlerFunc, templates ...string) http.Hand
 
 // template writers are passed into the http handler call
 // carrying the template with them:
-// 	err := w.(*templateWriter).execute("templateName", "templateData")
 type templateWriter struct {
 	http.ResponseWriter
 	template *template.Template
@@ -81,4 +86,8 @@ func loadTemplates(templateFiles ...string) *template.Template {
 
 	// change delims to work with Vuejs
 	return template.Must(template.New("").Delims("[[", "]]").Parse(tmpl))
+}
+
+func emptyTemplate(w *templateWriter, r *http.Request) {
+	w.execute(nil)
 }

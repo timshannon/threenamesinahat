@@ -1,4 +1,6 @@
-// Copyright (c) 2017-2018 Townsourced Inc.
+// Copyright 2020 Tim Shannon. All rights reserved.
+// Use of this source code is governed by the MIT license
+// that can be found in the LICENSE file.
 
 package server
 
@@ -17,7 +19,7 @@ func serveStatic(fileOrDir string, compress bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		modTime := time.Time{}
 		if r.Method != "GET" {
-			http.NotFound(w, r)
+			notFound(w, r)
 			return
 		}
 
@@ -28,7 +30,7 @@ func serveStatic(fileOrDir string, compress bool) http.HandlerFunc {
 			w.Header().Get("Content-Encoding") != "gzip" {
 			data, err := files.AssetCompressed(file)
 			if err != nil {
-				http.NotFound(w, r)
+				notFound(w, r)
 				return
 			}
 			w.Header().Set("Content-Encoding", "gzip")
@@ -36,7 +38,7 @@ func serveStatic(fileOrDir string, compress bool) http.HandlerFunc {
 		} else {
 			data, err := files.Asset(file)
 			if err != nil {
-				http.NotFound(w, r)
+				notFound(w, r)
 				return
 			}
 			reader = bytes.NewReader(data)

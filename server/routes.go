@@ -1,8 +1,15 @@
+// Copyright 2020 Tim Shannon. All rights reserved.
+// Use of this source code is governed by the MIT license
+// that can be found in the LICENSE file.
+
 package server
 
 import (
 	"net/http"
 )
+
+var notFound = gzipHandler(templateHandler(emptyTemplate, "notfound.template.html"))
+var errorPage = gzipHandler(templateHandler(emptyTemplate, "error.template.html"))
 
 func setupRoutes() {
 	get("/css/", serveStatic("css", true))
@@ -18,7 +25,7 @@ func delete(pattern string, handler http.HandlerFunc) { method("DELETE", pattern
 func method(method, pattern string, handler http.HandlerFunc) {
 	http.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != method {
-			http.NotFound(w, r)
+			notFound(w, r)
 			return
 		}
 
