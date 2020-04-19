@@ -22,9 +22,9 @@ func init() {
 }
 
 func Start(port string) error {
+	setupRoutes()
 	server = &http.Server{
-		Handler: setupRoutes(),
-		Addr:    ":" + port,
+		Addr: ":" + port,
 	}
 	return server.ListenAndServe()
 }

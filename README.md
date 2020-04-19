@@ -67,4 +67,4 @@ timer runs out
 * No SSL, run it behind nginx / traefik / apache / etc and let them handle ssl
 * No configuration
 * One command line flag *port*
-* Built entirely with the core Go libraries
+* Built *mostly* with the core Go libraries

@@ -1,7 +1,10 @@
 package server
 
-import "net/http"
+import (
+	"net/http"
+)
 
-func setupRoutes() http.Handler {
-	return http.NotFoundHandler()
+func setupRoutes() {
+	http.HandleFunc("/css/", serveStatic("css", true))
+	http.HandleFunc("/js/", serveStatic("js", true))
 }

@@ -15,8 +15,5 @@
 *npm-debug.log*
 *yarn-error.log*
 
-# development directories
-files/assets/*
-
 # built executable
 threenamesinahat
