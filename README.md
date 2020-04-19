@@ -31,9 +31,9 @@ starts with all the names put back in.
 not part of the person's name or a direct reference to their name. For example they can't do things like "rymes with"
 or "starts with X" or "ends with X".
 
-**Round 2**: Same as round one except this time you only get one word.
+**Round 2**: Same as previous rounds, except no words, only silent acting out clues.
 
-**Round 3**: Same as previous rounds, except no words, only silent acting out clues.
+**Round 3**: Same as round one except this time you only get one word.
 
 After three rounds, the team with the most points win.
 

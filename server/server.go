@@ -3,7 +3,9 @@ package server
 import (
 	"compress/gzip"
 	"context"
+	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -39,4 +41,56 @@ func Teardown() error {
 		return server.Shutdown(ctx)
 	}
 	return nil
+}
+
+func gzipHandler(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w = gzipResponseWriter(w, r)
+		defer func() {
+			err := w.(*gzipResponse).Close()
+			if err != nil {
+				log.Printf("Error closing gzip responseWriter: %s", err)
+			}
+		}()
+		handler(w, r)
+	}
+}
+
+// gzipResponse gzips the response data for any respones writers defined to use it
+type gzipResponse struct {
+	zip *gzip.Writer
+	http.ResponseWriter
+}
+
+func (g *gzipResponse) Write(b []byte) (int, error) {
+	if g.zip == nil {
+		return g.ResponseWriter.Write(b)
+	}
+	return g.zip.Write(b)
+}
+
+func (g *gzipResponse) Close() error {
+	if g.zip == nil {
+		return nil
+	}
+	err := g.zip.Close()
+	if err != nil {
+		return err
+	}
+	zipPool.Put(g.zip)
+	return nil
+}
+
+func gzipResponseWriter(w http.ResponseWriter, r *http.Request) *gzipResponse {
+	var writer *gzip.Writer
+
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		w.Header().Set("Content-Encoding", "gzip")
+		gz := zipPool.Get().(*gzip.Writer)
+		gz.Reset(w)
+
+		writer = gz
+	}
+
+	return &gzipResponse{zip: writer, ResponseWriter: w}
 }

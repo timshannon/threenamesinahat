@@ -17,8 +17,7 @@ import (
 var flagPort string
 
 func init() {
-	flag.StringVar(&flagPort, "port", "8080",
-		"Port for the webserver to listen on")
+	flag.StringVar(&flagPort, "port", "8080", "Port for the webserver to listen on")
 
 	go func() {
 		//Capture program shutdown, to make sure everything shuts down nicely
