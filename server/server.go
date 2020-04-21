@@ -47,19 +47,6 @@ func Teardown() error {
 	return nil
 }
 
-func gzipHandler(handler http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w = gzipResponseWriter(w, r)
-		defer func() {
-			err := w.(*gzipResponse).Close()
-			if err != nil {
-				log.Printf("Error closing gzip responseWriter: %s", err)
-			}
-		}()
-		handler(w, r)
-	}
-}
-
 // gzipResponse gzips the response data for any respones writers defined to use it
 type gzipResponse struct {
 	zip *gzip.Writer
@@ -97,4 +84,20 @@ func gzipResponseWriter(w http.ResponseWriter, r *http.Request) *gzipResponse {
 	}
 
 	return &gzipResponse{zip: writer, ResponseWriter: w}
+}
+
+func gzipHandler(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if w.Header().Get("Content-Encoding") != "gzip" {
+			// only create gzip writer if one doesn't already exist in the handler heirarchy
+			w = gzipResponseWriter(w, r)
+			defer func() {
+				err := w.(*gzipResponse).Close()
+				if err != nil {
+					log.Printf("Error closing gzip responseWriter: %s", err)
+				}
+			}()
+		}
+		handler(w, r)
+	}
 }

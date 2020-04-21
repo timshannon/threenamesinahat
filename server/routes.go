@@ -6,6 +6,9 @@ package server
 
 import (
 	"net/http"
+
+	"github.com/timshannon/threenamesinahat/game"
+	"golang.org/x/net/websocket"
 )
 
 var notFound = gzipHandler(templateHandler(emptyTemplate, "notfound.template.html"))
@@ -14,7 +17,13 @@ var errorPage = gzipHandler(templateHandler(emptyTemplate, "error.template.html"
 func setupRoutes() {
 	get("/css/", serveStatic("css", true))
 	get("/js/", serveStatic("js", true))
-	get("/", gzipHandler(templateHandler(index, "index.template.html")))
+	get("/", gzipHandler(templateHandler(emptyTemplate, "index.template.html")))
+	get("/new", gzipHandler(func(w http.ResponseWriter, r *http.Request) {
+		g := game.New()
+		http.Redirect(w, r, "/game/"+g.Code(), http.StatusTemporaryRedirect)
+	}))
+	get("/game/", gzipHandler(templateHandler(gameTemplate, "game.template.html")))
+	http.Handle("/game", websocket.Handler(gameSocket))
 }
 
 func get(pattern string, handler http.HandlerFunc)    { method("GET", pattern, handler) }

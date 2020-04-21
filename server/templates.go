@@ -16,7 +16,8 @@ import (
 	"github.com/timshannon/threenamesinahat/files"
 )
 
-const defaultCSP = "default-src 'self';font-src fonts.gstatic.com;style-src 'self' fonts.googleapis.com"
+// requirements for google fonts and vuejs
+const defaultCSP = "default-src 'self';font-src fonts.gstatic.com;style-src 'self' fonts.googleapis.com; script-src 'self' 'unsafe-eval'"
 
 type TemplateHandlerFunc func(*templateWriter, *http.Request)
 

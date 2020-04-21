@@ -2,20 +2,21 @@
 <html lang="en">
     <head>
         [[template "header"]]
-        <title>Three Names in a Hat</title>
+        <title>Game: [[.Code]] - Three Names in a Hat</title>
     </head>
     <body>
         <div class="paper container text-center margin-top">
-            <h1>Three Names in a Hat</h1>
-            <div>
-                <a href="/new" class="paper-btn btn-large">Start a game</a>
-                <h3>or</h3>
-                <a href="/join" class="paper-btn btn-large">Join a game</a>
+            <h1>The game will be starting soon</h1>
+            <h2>Enter the Game Code below to join</h2>
+            <h3>[[.Code]]</h3>
+            <div id="game">
+
             </div>
         </div>
 
         [[template "footer"]]
 
         <script src="/js/vue.min.js"></script>
+        <script src="/js/game.js"></script>
     </body>
 </html>
