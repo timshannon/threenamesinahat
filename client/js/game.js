@@ -1,25 +1,46 @@
 var app = new Vue({
     el: "#game",
+    directives: {
+        focus: {
+            inserted: function (el) {
+                el.focus();
+            },
+        },
+    },
     data: {
         socket: null,
+        game: null,
+        playerName: "",
+        playerNameErr: "",
+        code: "",
     },
     methods: {
-        receive: function (data) {
-            console.log("data: ", data);
+        receive: function (msg) {
+            if (msg.type == "state") {
+                this.game = msg.data;
+            }
         },
-        send: function (data) {
-            this.socket.send(data);
+        join: function () {
+            this.playerNameErr = "";
+            if (!this.playerName) {
+                this.playerNameErr = "You must provide a name before joining";
+                return;
+            }
+            this.socket.send({
+                type: "join",
+                data: {
+                    code: this.code,
+                    name: this.playerName,
+                }
+            });
         },
     },
     mounted: async function () {
+        this.code = document.getElementById("game").getAttribute("data-code");
         this.socket = GameSocket(this.receive);
         await this.socket.connect();
     },
 })
-
-function Game(code) {
-
-}
 
 function GameSocket(onmessage) {
     const retryPoll = 3000;

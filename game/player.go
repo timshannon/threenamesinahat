@@ -4,9 +4,20 @@
 
 package game
 
+// Player keeps track of a given player as well as is the communication channel
 type Player struct {
-	name  string
-	names []string
+	Name  string   `json:"name"`
+	Names []string `json:"names"`
+	game  *Game
 
-	connected bool
+	connected bool // FIXME?
+
+	send MsgFunc
+}
+
+func (p *Player) Update() error {
+	return p.send(Msg{
+		Type: "state",
+		Data: p.game.state,
+	})
 }

@@ -30,7 +30,31 @@ func gameTemplate(w *templateWriter, r *http.Request) {
 }
 
 func gameSocket(ws *websocket.Conn) {
-	websocket.JSON.Send(ws, map[string]interface{}{
-		"test": "value",
+	m := &game.Msg{}
+	err := websocket.JSON.Receive(ws, m)
+	if err != nil {
+		websocket.JSON.Send(ws, &game.Msg{Type: "error", Data: err.Error()})
+	}
+
+	if strings.ToLower(m.Type) != "join" {
+		ws.Close()
+		return
+	}
+
+	data, ok := m.Data.(map[string]interface{})
+	if !ok {
+		websocket.JSON.Send(ws, &game.Msg{Type: "error", Data: "Invalid websocket data"})
+		ws.Close()
+		return
+	}
+
+	_, err = game.Join(data["code"].(string), data["name"].(string), func(m game.Msg) error {
+		return websocket.JSON.Send(ws, m)
 	})
+
+	if err != nil {
+		websocket.JSON.Send(ws, &game.Msg{Type: "error", Data: err.Error()})
+		ws.Close()
+		return
+	}
 }

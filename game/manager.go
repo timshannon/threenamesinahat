@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/timshannon/threenamesinahat/fail"
 )
 
 type gameManager struct {
@@ -25,8 +27,10 @@ func New() *Game {
 
 	rand.Seed(time.Now().UnixNano())
 	g := &Game{
-		code:     generateCode(4),
-		numNames: 3,
+		state: GameState{
+			Code:           generateCode(4),
+			NamesPerPlayer: 3,
+		},
 	}
 
 	manager.games = append(manager.games, g)
@@ -45,6 +49,19 @@ func Find(code string) (*Game, bool) {
 		}
 	}
 	return nil, false
+}
+
+func Join(code, name string, fn MsgFunc) (*Player, error) {
+	g, ok := Find(code)
+	if !ok {
+		return nil, fail.NotFound("Invalid Game code, try again")
+	}
+	player, err := g.join(name, fn)
+	if err != nil {
+		return nil, err
+	}
+
+	return player, nil
 }
 
 // TODO cleanup inactive games with no players

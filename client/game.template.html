@@ -6,11 +6,39 @@
     </head>
     <body>
         <div class="paper container text-center margin-top">
-            <h1>The game will be starting soon</h1>
-            <h2>Enter the Game Code below to join</h2>
-            <h3>[[.Code]]</h3>
-            <div id="game">
-
+            <div id="game" data-code="[[.Code]]">
+                <form v-if="!game" @submit.prevent="join">
+                    <div class="form-group">
+                        <label for="playerName">Enter your name:</label>
+                        <input class="input-block" v-model="playerName"
+                            v-focus
+                            type="text"
+                            id="playerName">
+                        <p v-if="playerNameErr" class="text-danger">{{playerNameErr}}</p>
+                    </div>
+                    <button type="submit" class="btn-large">Join</button>
+                </form>
+                <div v-else>
+                    <h2>Enter the Code below to join</h2>
+                    <h1 id="gameCode"><strong>{{code}}</strong></h1>
+                    <div>
+                        <h3>Players currently in the game: </h3>
+                        <div class="row">
+                            <div class="col-6 col">
+                                <h3>Team 1</h3>
+                                <p v-for="player of game.team1.players"
+                                    key="player.name"
+                                    class="player-name">{{player.name}}</p>
+                            </div>
+                            <div class="col-6 col">
+                                <h3>Team 2</h3>
+                                <p v-for="player of game.team2.players"
+                                    key="player.name"
+                                    class="player-name">{{player.name}}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

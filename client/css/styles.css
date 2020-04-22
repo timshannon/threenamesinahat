@@ -1,15 +1,19 @@
 .page-footer {
     text-align: center;
 	width: 100%;
-	position: absolute;
-	bottom: 0;
+    position: relative;
 	height: 60px;
 	display: flex;
     justify-content: center;
+    margin-top: 4rem;
 }
 
 .page-footer > * {
     margin-right: 1rem;
     text-decoration: none;
     background: none;
+}
+
+.player-name {
+    font-size: 2rem;
 }
