@@ -16,8 +16,19 @@ var app = new Vue({
     },
     methods: {
         receive: function (msg) {
-            if (msg.type == "state") {
-                this.game = msg.data;
+            switch (msg.type) {
+                case "state":
+                    this.game = msg.data;
+                    break;
+                case "ping":
+                    this.socket.send({
+                        type: "pong",
+                        data: {
+                            name: this.playerName,
+                        }
+                    })
+                    break;
+
             }
         },
         join: function () {
@@ -33,12 +44,14 @@ var app = new Vue({
                     name: this.playerName,
                 }
             });
+            localStorage.setItem("playerName", this.playerName);
         },
     },
     mounted: async function () {
         this.code = document.getElementById("game").getAttribute("data-code");
         this.socket = GameSocket(this.receive);
         await this.socket.connect();
+        this.playername = localStorage.getItem("playerName");
     },
 })
 

@@ -16,7 +16,7 @@ import (
 
 func TestNewGame(t *testing.T) {
 	g := game.New()
-	assert(t, g.Code() != "", "No Code generated")
+	assert(t, g.Code != "", "No Code generated")
 }
 
 // assert fails the test if the condition is false.

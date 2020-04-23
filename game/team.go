@@ -4,7 +4,10 @@
 
 package game
 
+import "sync"
+
 type Team struct {
+	sync.Mutex
 	Name    string   `json:"name"`
 	Color   string   `json:"color"`
 	Players []Player `json:"players"`
@@ -20,13 +23,15 @@ func (t *Team) player(name string) (*Player, bool) {
 }
 
 func (t *Team) addPlayer(name string, game *Game, send MsgFunc) *Player {
+	t.Lock()
+	defer t.Unlock()
 	t.Players = append(t.Players, Player{Name: name, send: send, game: game})
 	return &t.Players[len(t.Players)-1]
 }
 
 func (t *Team) updatePlayers(g *Game) error {
-	for _, p := range t.Players {
-		err := p.Update()
+	for i := range t.Players {
+		err := t.Players[i].update()
 		if err != nil {
 			// TODO: only return error to failed player call? and Log error, instead of stopping whole team update?
 			return err

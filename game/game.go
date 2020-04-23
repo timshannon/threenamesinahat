@@ -22,19 +22,12 @@ type MsgFunc func(Msg) error
 
 type Game struct {
 	sync.Mutex
-	state GameState
-}
 
-type GameState struct {
 	Code           string  `json:"code"`
 	NamesPerPlayer int     `json:"namesPerPlayer"`
 	Team1          Team    `json:"team1"`
 	Team2          Team    `json:"team2"`
 	Leader         *Player `json:"leader"`
-}
-
-func (g *Game) Code() string {
-	return g.state.Code
 }
 
 // join adds a new player to the game
@@ -45,7 +38,7 @@ func (g *Game) join(name string, send MsgFunc) (*Player, error) {
 	g.Lock()
 	defer g.Unlock()
 
-	if player, ok := g.state.Team1.player(name); ok {
+	if player, ok := g.Team1.player(name); ok {
 		if player.connected {
 			return nil, fail.New("A player with the name " + name + " is already connected, please choose a new name")
 		}
@@ -53,7 +46,7 @@ func (g *Game) join(name string, send MsgFunc) (*Player, error) {
 		return player, nil
 	}
 
-	if player, ok := g.state.Team2.player(name); ok {
+	if player, ok := g.Team2.player(name); ok {
 		if player.connected {
 			return nil, fail.New("A player with the name " + name + " is already connected, please choose a new name")
 		}
@@ -62,11 +55,11 @@ func (g *Game) join(name string, send MsgFunc) (*Player, error) {
 	}
 
 	// new player
-	if len(g.state.Team1.Players) <= len(g.state.Team2.Players) {
-		player := g.state.Team1.addPlayer(name, g, send)
-		if len(g.state.Team1.Players) == 1 {
+	if len(g.Team1.Players) <= len(g.Team2.Players) {
+		player := g.Team1.addPlayer(name, g, send)
+		if len(g.Team1.Players) == 1 {
 			// first player in is leader
-			g.state.Leader = player
+			g.Leader = player
 		}
 
 		err := g.updatePlayers()
@@ -77,7 +70,7 @@ func (g *Game) join(name string, send MsgFunc) (*Player, error) {
 		return player, nil
 	}
 
-	player := g.state.Team2.addPlayer(name, g, send)
+	player := g.Team2.addPlayer(name, g, send)
 	err := g.updatePlayers()
 	if err != nil {
 		return nil, err
@@ -86,11 +79,11 @@ func (g *Game) join(name string, send MsgFunc) (*Player, error) {
 }
 
 func (g *Game) updatePlayers() error {
-	err := g.state.Team1.updatePlayers(g)
+	err := g.Team1.updatePlayers(g)
 	if err != nil {
 		return err
 	}
-	err = g.state.Team2.updatePlayers(g)
+	err = g.Team2.updatePlayers(g)
 	return err
 }
 

@@ -48,7 +48,7 @@ func gameSocket(ws *websocket.Conn) {
 		return
 	}
 
-	_, err = game.Join(data["code"].(string), data["name"].(string), func(m game.Msg) error {
+	player, err := game.Join(data["code"].(string), data["name"].(string), func(m game.Msg) error {
 		return websocket.JSON.Send(ws, m)
 	})
 
@@ -57,4 +57,10 @@ func gameSocket(ws *websocket.Conn) {
 		ws.Close()
 		return
 	}
+
+	for {
+		websocket.JSON.Receive(ws, m)
+		player.Recieve(*m)
+	}
+
 }

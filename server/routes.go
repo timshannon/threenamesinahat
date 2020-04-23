@@ -20,7 +20,7 @@ func setupRoutes() {
 	get("/", gzipHandler(templateHandler(emptyTemplate, "index.template.html")))
 	get("/new", gzipHandler(func(w http.ResponseWriter, r *http.Request) {
 		g := game.New()
-		http.Redirect(w, r, "/game/"+g.Code(), http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/game/"+g.Code, http.StatusTemporaryRedirect)
 	}))
 	get("/game/", gzipHandler(templateHandler(gameTemplate, "game.template.html")))
 	http.Handle("/game", websocket.Handler(gameSocket))
