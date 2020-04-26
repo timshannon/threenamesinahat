@@ -7,6 +7,7 @@ package game
 import (
 	"strings"
 	"sync"
+	"time"
 )
 
 // Player keeps track of a given player as well as is the communication channel
@@ -15,9 +16,8 @@ type Player struct {
 
 	Name  string   `json:"name"`
 	Names []string `json:"names"`
-	game  *Game
 
-	connected bool
+	chanPing chan bool
 
 	send MsgFunc
 }
@@ -25,25 +25,26 @@ type Player struct {
 func (p *Player) Recieve(m Msg) {
 	switch strings.ToLower(m.Type) {
 	case "pong":
-		p.Lock()
-		p.connected = true
-		p.Unlock()
+		p.chanPing <- true
 	}
 }
 
-func (p *Player) update() error {
+func (p *Player) update(g *Game) error {
 	return p.send(Msg{
 		Type: "state",
-		Data: p.game,
+		Data: g,
 	})
 }
 
-func (p *Player) ping() error {
-	p.Lock()
-	defer p.Unlock()
-	p.connected = false
-	// TODO wait for pong
-	return p.send(Msg{
+func (p *Player) ping() bool {
+	p.send(Msg{
 		Type: "ping",
 	})
+
+	select {
+	case <-time.After(3 * time.Second):
+		return false
+	case <-p.chanPing:
+		return true
+	}
 }

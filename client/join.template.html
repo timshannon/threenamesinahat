@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        [[template "header"]]
+        <title>Join a Game - Three Names in a Hat</title>
+    </head>
+    <body>
+        <div class="paper container text-center margin-top">
+            <div id="game">
+                <form @submit.prevent="join">
+                    <div class="form-group">
+                        <h2>Enter a code to join a game</h2>
+                        <input class="input-block input-large game-code"
+                            v-model="code"
+                            v-focus
+                            type="text"
+                            maxlength="4"
+                            id="code">
+                        <p v-if="codeErr" class="text-danger">{{codeErr}}</p>
+                    </div>
+                    <button type="submit" class="btn-large">Join</button>
+                </form>
+            </div>
+        </div>
+
+        [[template "footer"]]
+
+        <script src="/js/vue.min.js"></script>
+        <script src="/js/join.js"></script>
+    </body>
+</html>

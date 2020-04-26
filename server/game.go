@@ -23,7 +23,7 @@ func gameTemplate(w *templateWriter, r *http.Request) {
 	g, ok := game.Find(code)
 
 	if !ok {
-		notFound(w, r)
+		notFound(w, r) // TODO: Game Not found page
 		return
 	}
 	w.execute(g)

@@ -7,16 +7,23 @@
     <body>
         <div class="paper container text-center margin-top">
             <div id="game" data-code="[[.Code]]">
-                <form v-if="!game" @submit.prevent="join">
+                <div v-if="error">
+                    <div class="alert alert-danger">{{error}}</div>
+                    <a class="paper-btn btn-large" href="/">Try Again</a>
+                </div>
+                <form v-else-if="!game" @submit.prevent="join">
                     <div class="form-group">
                         <label for="playerName">Enter your name:</label>
-                        <input class="input-block" v-model="playerName"
+                        <input class="input-block input-large"
+                            v-model="playerName"
                             v-focus
                             type="text"
                             id="playerName">
                         <p v-if="playerNameErr" class="text-danger">{{playerNameErr}}</p>
                     </div>
-                    <button type="submit" class="btn-large">Join</button>
+                    <button type="submit" class="btn-large"
+                        :disabled="joinLoading"
+                        :class="{'loading':joinLoading}">Join</button>
                 </form>
                 <div v-else>
                     <h2>Enter the Code below to join</h2>

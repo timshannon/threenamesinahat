@@ -13,22 +13,21 @@ var app = new Vue({
         playerName: "",
         playerNameErr: "",
         code: "",
+        joinLoading: false,
+        error: null,
     },
     methods: {
         receive: function (msg) {
             switch (msg.type) {
                 case "state":
+                    this.joinLoading = false;
                     this.game = msg.data;
                     break;
+                case "error":
+                    this.error = msg.data;
                 case "ping":
-                    this.socket.send({
-                        type: "pong",
-                        data: {
-                            name: this.playerName,
-                        }
-                    })
+                    this.socket.send({ type: "pong" });
                     break;
-
             }
         },
         join: function () {
@@ -37,6 +36,7 @@ var app = new Vue({
                 this.playerNameErr = "You must provide a name before joining";
                 return;
             }
+            this.joinLoading = true;
             this.socket.send({
                 type: "join",
                 data: {
@@ -51,7 +51,7 @@ var app = new Vue({
         this.code = document.getElementById("game").getAttribute("data-code");
         this.socket = GameSocket(this.receive);
         await this.socket.connect();
-        this.playername = localStorage.getItem("playerName");
+        this.playerName = localStorage.getItem("playerName");
     },
 })
 

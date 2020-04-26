@@ -5,7 +5,6 @@
 package game
 
 import (
-	"math/rand"
 	"sync"
 
 	"github.com/timshannon/threenamesinahat/fail"
@@ -36,10 +35,13 @@ func (g *Game) join(name string, send MsgFunc) (*Player, error) {
 		return nil, fail.New("You must provide a name before joining")
 	}
 	g.Lock()
-	defer g.Unlock()
+	defer func() {
+		g.updatePlayers()
+		g.Unlock()
+	}()
 
 	if player, ok := g.Team1.player(name); ok {
-		if player.connected {
+		if player.ping() {
 			return nil, fail.New("A player with the name " + name + " is already connected, please choose a new name")
 		}
 		player.send = send
@@ -47,7 +49,7 @@ func (g *Game) join(name string, send MsgFunc) (*Player, error) {
 	}
 
 	if player, ok := g.Team2.player(name); ok {
-		if player.connected {
+		if player.ping() {
 			return nil, fail.New("A player with the name " + name + " is already connected, please choose a new name")
 		}
 		player.send = send
@@ -56,44 +58,34 @@ func (g *Game) join(name string, send MsgFunc) (*Player, error) {
 
 	// new player
 	if len(g.Team1.Players) <= len(g.Team2.Players) {
-		player := g.Team1.addPlayer(name, g, send)
+		player := g.Team1.addPlayer(name, send)
 		if len(g.Team1.Players) == 1 {
 			// first player in is leader
 			g.Leader = player
 		}
 
-		err := g.updatePlayers()
-		if err != nil {
-			return nil, err
-		}
-
 		return player, nil
 	}
 
-	player := g.Team2.addPlayer(name, g, send)
-	err := g.updatePlayers()
-	if err != nil {
-		return nil, err
-	}
+	player := g.Team2.addPlayer(name, send)
 	return player, nil
 }
 
-func (g *Game) updatePlayers() error {
-	err := g.Team1.updatePlayers(g)
-	if err != nil {
-		return err
-	}
-	err = g.Team2.updatePlayers(g)
-	return err
+func (g *Game) updatePlayers() {
+	g.Team1.updatePlayers(g)
+	g.Team2.updatePlayers(g)
 }
 
-// generateCode generates a random string of only uppercase letters (A-Z) of the specified length
-func generateCode(length int) string {
-	code := ""
+// cleanAndUpdatePlayers pings all players and removes those that don't respond
+func (g *Game) cleanAndUpdatePlayers() {
+	g.Team1.cleanPlayers()
+	g.Team2.cleanPlayers()
+	g.updatePlayers()
+}
 
-	for i := 0; i < length; i++ {
-		code += string(codeChars[rand.Intn(26)])
+func (g *Game) removePlayer(name string) {
+	if !g.Team1.removePlayer(name) {
+		g.Team2.removePlayer(name)
 	}
-
-	return code
+	g.updatePlayers()
 }

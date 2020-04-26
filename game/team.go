@@ -4,7 +4,10 @@
 
 package game
 
-import "sync"
+import (
+	"log"
+	"sync"
+)
 
 type Team struct {
 	sync.Mutex
@@ -22,20 +25,42 @@ func (t *Team) player(name string) (*Player, bool) {
 	return nil, false
 }
 
-func (t *Team) addPlayer(name string, game *Game, send MsgFunc) *Player {
+func (t *Team) addPlayer(name string, send MsgFunc) *Player {
 	t.Lock()
 	defer t.Unlock()
-	t.Players = append(t.Players, Player{Name: name, send: send, game: game})
+	t.Players = append(t.Players, Player{Name: name, send: send})
 	return &t.Players[len(t.Players)-1]
 }
 
-func (t *Team) updatePlayers(g *Game) error {
+func (t *Team) removePlayer(name string) bool {
+	t.Lock()
+	defer t.Unlock()
+
 	for i := range t.Players {
-		err := t.Players[i].update()
-		if err != nil {
-			// TODO: only return error to failed player call? and Log error, instead of stopping whole team update?
-			return err
+		if t.Players[i].Name == name {
+			t.Players = append(t.Players[:i], t.Players[i+1:]...)
+			return true
 		}
 	}
-	return nil
+	return false
+}
+
+func (t *Team) updatePlayers(g *Game) {
+	for i := range t.Players {
+		err := t.Players[i].update(g)
+		if err != nil {
+			log.Printf("Error updating player %s: %s", t.Players[i].Name, err)
+			// if !t.Players[i].ping() {
+			// 	t.removePlayer(t.Players[i].Name)
+			// }
+		}
+	}
+}
+
+func (t *Team) cleanPlayers() {
+	for i := range t.Players {
+		if !t.Players[i].ping() {
+			t.removePlayer(t.Players[i].Name)
+		}
+	}
 }
