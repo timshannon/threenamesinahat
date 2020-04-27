@@ -58,9 +58,14 @@ func (t *Team) updatePlayers(g *Game) {
 }
 
 func (t *Team) cleanPlayers() {
+	var remove []string
 	for i := range t.Players {
 		if !t.Players[i].ping() {
-			t.removePlayer(t.Players[i].Name)
+			remove = append(remove, t.Players[i].Name)
 		}
+	}
+
+	for _, name := range remove {
+		t.removePlayer(name)
 	}
 }

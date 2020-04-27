@@ -7,7 +7,7 @@
     <body>
         <div class="paper container text-center margin-top">
             <div id="game" data-code="[[.Code]]">
-                <div v-if="error">
+                <div v-if="error" v-cloak>
                     <div class="alert alert-danger">{{error}}</div>
                     <a class="paper-btn btn-large" href="/">Try Again</a>
                 </div>

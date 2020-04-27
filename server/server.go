@@ -27,22 +27,36 @@ func init() {
 	}
 }
 
-func Start(port string) error {
+func Start(port string, shutdown chan bool) error {
 	setupRoutes()
 	server = &http.Server{
 		Addr: ":" + port,
 	}
-	return server.ListenAndServe()
+
+	err := make(chan error)
+	go func() {
+		err <- server.ListenAndServe()
+	}()
+
+	go func() {
+		<-shutdown
+		err <- teardown()
+	}()
+
+	return <-err
 }
 
-func Teardown() error {
+func teardown() error {
 	if server != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
 		server.SetKeepAlivesEnabled(false)
 		// TODO: Teardown Websockets
-		return server.Shutdown(ctx)
+		err := server.Shutdown(ctx)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
