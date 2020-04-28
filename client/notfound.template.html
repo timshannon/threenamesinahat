@@ -2,12 +2,22 @@
 <html lang="en">
     <head>
         [[template "header"]]
+        [[if .GameNotFound]]
+        <title>Game Not Found!</title>
+        [[else]]
         <title>Page Not Found!</title>
+        [[end]]
     </head>
     <body>
         <div class="paper container text-center margin-top">
+            [[if .GameNotFound]]
+            <h1>Game Not Found</h1>
+            <a class="paper-btn btn-large" href="/join">Try again</a>
+
+            [[else]]
             <h1>Page Not Found</h1>
             <a class="paper-btn btn-large" href="/">Return</a>
+            [[end]]
         </div>
         [[template "footer"]]
     </body>

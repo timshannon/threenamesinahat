@@ -12,6 +12,14 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+var gameNotFound = gzipHandler(templateHandler(func(w *templateWriter, r *http.Request) {
+	w.execute(struct {
+		GameNotFound bool
+	}{
+		GameNotFound: true,
+	})
+}, "notfound.template.html"))
+
 func gameTemplate(w *templateWriter, r *http.Request) {
 	s := strings.Split(r.URL.Path, "/")
 	code := s[len(s)-1]
@@ -23,7 +31,7 @@ func gameTemplate(w *templateWriter, r *http.Request) {
 	g, ok := game.Find(code)
 
 	if !ok {
-		notFound(w, r) // TODO: Game Not found page
+		gameNotFound(w, r)
 		return
 	}
 	w.execute(g)

@@ -10,11 +10,24 @@ var app = new Vue({
     data: {
         socket: null,
         game: null,
+        settings: false,
         playerName: "",
         playerNameErr: "",
         code: "",
         joinLoading: false,
         error: null,
+    },
+    computed: {
+        leader: function () {
+            if (this.game) {
+                return this.game.leader.name == this.playerName;
+            }
+            return false;
+        },
+        canStart: function () {
+            if (!this.game) { return false; }
+            return this.game.team1.players.length > 1 && this.game.team2.players.length > 1;
+        },
     },
     methods: {
         receive: function (msg) {
@@ -45,6 +58,18 @@ var app = new Vue({
                 }
             });
             localStorage.setItem("playerName", this.playerName);
+        },
+        send: function (type, data) {
+            this.socket.send({ type: type, data: data });
+        },
+        setNamesPerPlayer: function (increment) {
+            this.game.namesPerPlayer += increment;
+            if (this.game.namesPerPlayer <= 0) {
+                this.game.namesPerPlayer = 1;
+            } else if (this.game.namesPerPlayer >= 20) {
+                this.game.namesPerPlayer = 20;
+            }
+            this.socket.send({ type: "namesperplayer", data: this.game.namesPerPlayer });
         },
     },
     mounted: async function () {

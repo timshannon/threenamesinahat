@@ -9,7 +9,9 @@
             <div id="game" data-code="[[.Code]]">
                 <div v-if="error" v-cloak>
                     <div class="alert alert-danger">{{error}}</div>
-                    <a class="paper-btn btn-large" href="/">Try Again</a>
+                    <a class="paper-btn btn-large" href="/game/[[.Code]]">
+                        Try Again
+                    </a>
                 </div>
                 <form v-else-if="!game" @submit.prevent="join">
                     <div class="form-group">
@@ -19,31 +21,82 @@
                             v-focus
                             type="text"
                             id="playerName">
-                        <p v-if="playerNameErr" class="text-danger">{{playerNameErr}}</p>
+                        <p v-if="playerNameErr" v-cloak class="text-danger">{{playerNameErr}}</p>
                     </div>
                     <button type="submit" class="btn-large"
                         :disabled="joinLoading"
                         :class="{'loading':joinLoading}">Join</button>
                 </form>
-                <div v-else>
-                    <h2>Enter the Code below to join</h2>
-                    <h1 id="gameCode"><strong>{{code}}</strong></h1>
-                    <div>
-                        <h3>Players currently in the game: </h3>
-                        <div class="row">
-                            <div class="col-6 col">
-                                <h3>Team 1</h3>
-                                <p v-for="player of game.team1.players"
-                                    key="player.name"
-                                    class="player-name">{{player.name}}</p>
-                            </div>
-                            <div class="col-6 col">
-                                <h3>Team 2</h3>
-                                <p v-for="player of game.team2.players"
-                                    key="player.name"
-                                    class="player-name">{{player.name}}</p>
+                <div v-else-if="settings" v-cloak>
+                    <h2>Number of names each player adds</h2>
+                    <div class="row flex-center">
+                        <div class="col-2 col"><h1>{{game.namesPerPlayer}}</h1></div>
+                        <div class="col-2 col">
+                            <button @click="setNamesPerPlayer(1)"
+                                class="btn-large margin-bottom">&#9650;</button>
+                            <button @click="setNamesPerPlayer(-1)"
+                                class="btn-large">&#9660;</button>
+                        </div>
+                    </div>
+
+                    <button class="btn-large margin-top"
+                        @click="settings=false">Return</button>
+                </div>
+                <div v-else v-cloak>
+                    <div v-if="game.stage=='pregame'">
+                        <button v-if="leader"
+                            @click="settings=true"
+                            class="btn-settings">
+                            [[template "gear"]]
+                        </button>
+                        <h2>Enter the Code below to join</h2>
+                        <h1 id="gameCode"><strong>{{code}}</strong></h1>
+                        <div v-if="leader">
+                            <button v-if="canStart"
+                                @click="send('start')"
+                                class="btn-large btn-secondary">
+                                Start the Game if everyone is ready
+                            </button>
+                            <div v-else class="alert alert-primary">
+                                Waiting until each team has at least 2 players
                             </div>
                         </div>
+                        <div v-else class="alert alert-primary">
+                            Waiting until each team has at least 2 players
+                        </div>
+                        <div>
+                            <button class="paper-btn margin"
+                                @click="send('switchteams')">
+                                Switch Teams
+                            </button>
+                            <div class="row flex-center">
+                                <div class="col-5 col border border-6
+                                    border-primary">
+                                    <h3>Team 1</h3>
+                                    <p v-for="player of game.team1.players"
+                                        key="player.name"
+                                        class="player-name"
+                                        :class="{'self': player.name === playerName}">
+                                        <span v-if="player.name === game.leader.name">&#9733;</span>
+                                        {{player.name}}
+                                    </p>
+                                </div>
+                                <div class="col-1"></div>
+                                <div class="col-5 col border border-3
+                                    border-primary">
+                                    <h3>Team 2</h3>
+                                    <p v-for="player of game.team2.players"
+                                        key="player.name"
+                                        :class="{'self': player.name === playerName}"
+                                        class="player-name">
+                                        <span v-if="player.name === game.leader.name">&#9733;</span>
+                                        {{player.name}}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="game.stage=='setup'">
                     </div>
                 </div>
             </div>

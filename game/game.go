@@ -19,6 +19,14 @@ type Msg struct {
 
 type MsgFunc func(Msg) error
 
+const (
+	stagePregame = "pregame" // players join
+	stageSetup   = "setup"   // players add names
+	stageRound1  = "round1"
+	stageRound2  = "round2"
+	stageRound3  = "round3"
+)
+
 type Game struct {
 	sync.Mutex
 
@@ -27,7 +35,10 @@ type Game struct {
 	Team1          Team    `json:"team1"`
 	Team2          Team    `json:"team2"`
 	Leader         *Player `json:"leader"`
+	Stage          string  `json:"stage"`
 }
+
+// pregame -> setup
 
 // join adds a new player to the game
 func (g *Game) join(name string, send MsgFunc) (*Player, error) {
@@ -57,8 +68,12 @@ func (g *Game) join(name string, send MsgFunc) (*Player, error) {
 	}
 
 	// new player
+	if g.Stage != stagePregame {
+		return nil, fail.New("You cannot join a game in progress")
+	}
+
 	if len(g.Team1.Players) <= len(g.Team2.Players) {
-		player := g.Team1.addPlayer(name, send)
+		player := g.Team1.addNewPlayer(name, send, g)
 		if len(g.Team1.Players) == 1 {
 			// first player in is leader
 			g.Leader = player
@@ -67,8 +82,35 @@ func (g *Game) join(name string, send MsgFunc) (*Player, error) {
 		return player, nil
 	}
 
-	player := g.Team2.addPlayer(name, send)
+	player := g.Team2.addNewPlayer(name, send, g)
 	return player, nil
+}
+
+func (g *Game) setNamesPerPlayer(who *Player, num int) error {
+	if g.Stage != stagePregame {
+		return fail.New("The number of names per player cannot be set after the game has started")
+	}
+
+	if !who.isLeader() {
+		return fail.New("Only game leaders can change the number of names")
+	}
+
+	if num <= 0 {
+		return fail.New("Number of names must be greater than 0")
+	}
+
+	if num > 20 {
+		return fail.New("The maximum number of names is 20")
+	}
+
+	g.Lock()
+	defer func() {
+		g.updatePlayers()
+		g.Unlock()
+	}()
+
+	g.NamesPerPlayer = num
+	return nil
 }
 
 func (g *Game) updatePlayers() {
@@ -88,4 +130,43 @@ func (g *Game) removePlayer(name string) {
 		g.Team2.removePlayer(name)
 	}
 	g.updatePlayers()
+}
+
+func (g *Game) startGame(who *Player) error {
+	if !who.isLeader() {
+		return fail.New("Only the %s can start the game", g.Leader.Name)
+	}
+	if g.Stage != stagePregame {
+		return fail.New("The game has already started")
+	}
+
+	g.cleanAndUpdatePlayers()
+
+	if len(g.Team1.Players) < 2 || len(g.Team2.Players) < 2 {
+		return fail.New("You must have at least two players on each team to start")
+	}
+
+	g.Lock()
+	defer func() {
+		g.updatePlayers()
+		g.Unlock()
+	}()
+	g.Stage = stageSetup
+
+	return nil
+}
+
+func (g *Game) switchTeams(who *Player) {
+	g.Lock()
+	defer func() {
+		g.updatePlayers()
+		g.Unlock()
+	}()
+
+	if g.Team1.removePlayer(who.Name) {
+		g.Team2.addExistingPlayer(who)
+	} else {
+		g.Team2.removePlayer(who.Name)
+		g.Team1.addExistingPlayer(who)
+	}
 }

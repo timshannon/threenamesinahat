@@ -17,7 +17,11 @@
 }
 
 .player-name {
-    font-size: 2rem;
+    font-size: 1.75rem;
+}
+
+.player-name.self {
+    font-weight: bold;
 }
 
 input.input-large {
@@ -44,7 +48,6 @@ input.game-code {
     border-bottom-right-radius: 160px 195px;
     border-bottom-left-radius: 185px 190px;
 
-    transition: all 235ms ease 0s;
     box-shadow: 15px 28px 25px -18px rgba(0,0,0,0.2);
     transition: all 235ms ease-in-out 0s;
     align-self: center;
@@ -66,4 +69,25 @@ input.game-code {
     animation: loading .6s linear infinite;
 
     border-top-color: #000;
+}
+
+.icon {
+    height: 2rem;
+    width: 2rem;
+}
+
+.btn-settings {
+    position: absolute;
+    right:0;
+    top:0;
+    border: none;
+    box-shadow: none;
+}
+.btn-settings:hover, .btn-settings:focus {
+    box-shadow: none;
+}
+
+.border-right-heavy {
+    border-bottom-right-radius: 225px 15px;
+    border-right: 6px solid #41403e;
 }

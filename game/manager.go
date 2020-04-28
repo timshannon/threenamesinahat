@@ -29,6 +29,7 @@ func New() *Game {
 	g := &Game{
 		Code:           generateCode(4),
 		NamesPerPlayer: 3,
+		Stage:          stagePregame,
 	}
 
 	manager.games = append(manager.games, g)
