@@ -5,7 +5,7 @@
 package game
 
 import (
-	"log"
+	"fmt"
 	"sync"
 )
 
@@ -25,10 +25,10 @@ func (t *Team) player(name string) (*Player, bool) {
 	return nil, false
 }
 
-func (t *Team) addNewPlayer(name string, send MsgFunc, game *Game) *Player {
+func (t *Team) addNewPlayer(name string, game *Game) *Player {
 	t.Lock()
 	defer t.Unlock()
-	t.Players = append(t.Players, &Player{Name: name, send: send, game: game})
+	t.Players = append(t.Players, newPlayer(name, game))
 	return t.Players[len(t.Players)-1]
 }
 
@@ -51,19 +51,18 @@ func (t *Team) removePlayer(name string) bool {
 	return false
 }
 
-func (t *Team) updatePlayers(g *Game) {
+func (t *Team) updatePlayers() {
 	for i := range t.Players {
-		err := t.Players[i].update()
-		if err != nil {
-			log.Printf("Error updating player %s: %s", t.Players[i].Name, err)
-		}
+		t.Players[i].update()
 	}
 }
 
 func (t *Team) cleanPlayers() {
 	var remove []string
 	for i := range t.Players {
+		fmt.Println("Checking ", t.Players[i].Name)
 		if !t.Players[i].ping() {
+			fmt.Println("Removed ", t.Players[i].Name)
 			remove = append(remove, t.Players[i].Name)
 		}
 	}

@@ -8,9 +8,9 @@
         <div class="paper container text-center margin-top">
             <div id="game">
                 <form @submit.prevent="join">
-                    <div class="form-group">
-                        <h2>Enter a code to join a game</h2>
-                        <input class="input-block input-large game-code"
+                    <div class="form-group large">
+                        <label for="code">Enter a code to join a game</label>
+                        <input class="input-block game-code"
                             v-model="code"
                             v-focus
                             type="text"

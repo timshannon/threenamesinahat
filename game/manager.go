@@ -47,12 +47,12 @@ func Find(code string) (*Game, bool) {
 	return nil, false
 }
 
-func Join(code, name string, send MsgFunc) (*Player, error) {
+func Join(code, name string) (*Player, error) {
 	g, ok := Find(code)
 	if !ok {
 		return nil, fail.NotFound("Invalid Game code, try again")
 	}
-	player, err := g.join(name, send)
+	player, err := g.join(name)
 	if err != nil {
 		return nil, err
 	}

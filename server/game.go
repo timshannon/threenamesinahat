@@ -5,6 +5,7 @@
 package server
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -56,9 +57,10 @@ func gameSocket(ws *websocket.Conn) {
 		return
 	}
 
-	player, err := game.Join(data["code"].(string), data["name"].(string), func(m game.Msg) error {
-		return websocket.JSON.Send(ws, m)
-	})
+	gameCode := data["code"].(string)
+	playerName := data["name"].(string)
+
+	player, err := game.Join(gameCode, playerName)
 
 	if err != nil {
 		websocket.JSON.Send(ws, &game.Msg{Type: "error", Data: err.Error()})
@@ -66,9 +68,25 @@ func gameSocket(ws *websocket.Conn) {
 		return
 	}
 
-	for {
-		websocket.JSON.Receive(ws, m)
-		player.Recieve(*m)
-	}
+	go func() {
+		for msg := range player.Send {
+			err := websocket.JSON.Send(ws, msg)
+			if err != nil {
+				log.Printf("Error in game %s sending to player %s: %s", gameCode, playerName, err)
+				ws.Close()
+				return
+			}
+		}
+	}()
 
+	for {
+		err = websocket.JSON.Receive(ws, m)
+		if err != nil {
+			log.Printf("Error recieving on web socket: %s", err)
+			ws.Close()
+			return
+		}
+
+		player.Receive <- *m
+	}
 }

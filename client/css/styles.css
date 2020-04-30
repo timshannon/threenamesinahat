@@ -24,7 +24,11 @@
     font-weight: bold;
 }
 
-input.input-large {
+.form-group.large input {
+    font-size: 2rem;
+}
+
+.form-group.large label {
     font-size: 2rem;
 }
 

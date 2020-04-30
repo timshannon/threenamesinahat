@@ -14,9 +14,9 @@
                     </a>
                 </div>
                 <form v-else-if="!game" @submit.prevent="join">
-                    <div class="form-group">
+                    <div class="form-group large">
                         <label for="playerName">Enter your name:</label>
-                        <input class="input-block input-large"
+                        <input class="input-block"
                             v-model="playerName"
                             v-focus
                             type="text"
@@ -24,11 +24,11 @@
                         <p v-if="playerNameErr" v-cloak class="text-danger">{{playerNameErr}}</p>
                     </div>
                     <button type="submit" class="btn-large"
-                        :disabled="joinLoading"
-                        :class="{'loading':joinLoading}">Join</button>
+                        :disabled="loading"
+                        :class="{'loading':loading}">Join</button>
                 </form>
                 <div v-else-if="settings" v-cloak>
-                    <h2>Number of names each player adds</h2>
+                    <h2>Number of names from each player</h2>
                     <div class="row flex-center">
                         <div class="col-2 col"><h1>{{game.namesPerPlayer}}</h1></div>
                         <div class="col-2 col">
@@ -53,8 +53,10 @@
                         <h1 id="gameCode"><strong>{{code}}</strong></h1>
                         <div v-if="leader">
                             <button v-if="canStart"
-                                @click="send('start')"
-                                class="btn-large btn-secondary">
+                                @click="startGame"
+                                :disabled="loading"
+                                :class="{'loading':loading}"
+                                class="btn-large btn-success">
                                 Start the Game if everyone is ready
                             </button>
                             <div v-else class="alert alert-primary">
@@ -65,7 +67,8 @@
                             Waiting until each team has at least 2 players
                         </div>
                         <div>
-                            <button class="paper-btn margin"
+                            <button class="paper-btn margin btn-secondary"
+                                :disabled="loading"
                                 @click="send('switchteams')">
                                 Switch Teams
                             </button>
@@ -97,6 +100,20 @@
                         </div>
                     </div>
                     <div v-if="game.stage=='setup'">
+                        <h3>Please Enter {{game.namesPerPlayer}} names</h3>
+                        <form @submit.prevent="submitName">
+                            <div class="form-group large">
+                                <label for="addName">Enter a name</label>
+                                <p>Pick a name everyone in the game would recognize</p>
+                                <input class="input-block"
+                                    v-model="addName"
+                                    v-focus
+                                    type="text"
+                                    id="addName">
+                                <button type="submit" class="btn-large">Add</button>
+                            </div>
+                        </form>
+
                     </div>
                 </div>
             </div>

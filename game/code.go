@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+const codeChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 // generateCode generates a random string of only uppercase letters (A-Z) of the specified length
 func generateCode(length int) string {
 	code := ""
