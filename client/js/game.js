@@ -1,3 +1,7 @@
+// Copyright 2020 Tim Shannon. All rights reserved.
+// Use of this source code is governed by the MIT license
+// that can be found in the LICENSE file.
+
 var app = new Vue({
     el: "#game",
     directives: {
@@ -28,6 +32,43 @@ var app = new Vue({
         canStart: function () {
             if (!this.game) { return false; }
             return this.game.team1.players.length > 1 && this.game.team2.players.length > 1;
+        },
+        player: function () {
+            if (!this.game) { return null; }
+            let res = this.game.team1.players.find(player => player.name === this.playerName);
+            if (res) {
+                return res;
+            }
+
+            res = this.game.team2.players.find(player => player.name === this.playerName);
+            return res;
+        },
+        namesLeft: function () {
+            if (this.game && this.player) {
+                if (this.player.names) {
+                    return this.game.namesPerPlayer - this.player.names.length;
+                }
+                return this.game.namesPerPlayer;
+            }
+            return 0;
+        },
+        timerPercent: function () {
+            if (this.game && this.game.timer) {
+                return (this.game.timer.left / this.game.timer.seconds) * 100;
+            }
+            return 0;
+        },
+        timerStyle: function () {
+            if (this.game && this.game.timer) {
+                // TODO add beating animation
+                if (this.game.timer.left < 10) {
+                    return "danger";
+                }
+                if (this.game.timer.left < 30) {
+                    return "warning";
+                }
+            }
+            return "success";
         },
     },
     methods: {
@@ -68,7 +109,11 @@ var app = new Vue({
             if (!this.addName) {
                 return;
             }
-            this.send("addName", this.addName);
+            this.send("addname", this.addName);
+            this.addName = "";
+        },
+        removeName: function (name) {
+            this.send("removename", name);
         },
         send: function (type, data) {
             this.socket.send({ type: type, data: data });

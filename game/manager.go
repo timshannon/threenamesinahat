@@ -27,9 +27,11 @@ func New() *Game {
 
 	rand.Seed(time.Now().UnixNano())
 	g := &Game{
-		Code:           generateCode(4),
-		NamesPerPlayer: 3,
-		Stage:          stagePregame,
+		gameState: gameState{
+			Code:           generateCode(4),
+			NamesPerPlayer: 3,
+			Stage:          stagePregame,
+		},
 	}
 
 	manager.games = append(manager.games, g)

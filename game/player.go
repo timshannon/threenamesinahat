@@ -7,6 +7,7 @@ package game
 import (
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/timshannon/threenamesinahat/fail"
@@ -16,6 +17,7 @@ const timeout = 3 * time.Second
 
 // Player keeps track of a given player as well as is the communication channel
 type Player struct {
+	sync.Mutex
 	Name  string   `json:"name"`
 	Names []string `json:"names"`
 
@@ -49,15 +51,27 @@ func recieve(p *Player) {
 			case "pong":
 				p.chanPing <- true
 			case "namesperplayer":
-				if _, ok := m.Data.(float64); !ok {
+				if num, ok := m.Data.(float64); ok {
+					p.ok(p.game.setNamesPerPlayer(p, int(num)))
+				} else {
 					p.ok(fail.New("Invalid data type for namesperplayer. Got %T wanted float64", m.Data))
-					break
 				}
-				p.ok(p.game.setNamesPerPlayer(p, int(m.Data.(float64))))
 			case "start":
 				p.ok(p.game.startGame(p))
 			case "switchteams":
 				p.game.switchTeams(p)
+			case "addname":
+				if name, ok := m.Data.(string); ok {
+					p.ok(p.addName(name))
+				} else {
+					p.ok(fail.New("Invalid data type for addname.  Got %T wanted string", m.Data))
+				}
+			case "removename":
+				if name, ok := m.Data.(string); ok {
+					p.ok(p.removeName(name))
+				} else {
+					p.ok(fail.New("Invalid data type for removename.  Got %T wanted string", m.Data))
+				}
 			default:
 				p.ok(fail.New("%s is an invalid message type", m.Type))
 			}
@@ -87,7 +101,7 @@ func (p *Player) ok(err error) bool {
 func (p *Player) update() {
 	p.Send <- Msg{
 		Type: "state",
-		Data: p.game,
+		Data: p.game.gameState,
 	}
 }
 
@@ -104,4 +118,39 @@ func (p *Player) ping() bool {
 
 func (p *Player) isLeader() bool {
 	return p.Name == p.game.Leader.Name
+}
+
+func (p *Player) addName(name string) error {
+	p.Lock()
+	defer p.Unlock()
+
+	if p.game.Stage != stageSetup {
+		return fail.New("You cannot add names at this time")
+	}
+
+	if len(p.Names) >= p.game.NamesPerPlayer {
+		return fail.New("You cannot add any more names in this game")
+	}
+
+	p.Names = append(p.Names, name)
+	p.game.updatePlayers()
+	return nil
+}
+
+func (p *Player) removeName(name string) error {
+	p.Lock()
+	defer p.Unlock()
+	if p.game.Stage != stageSetup {
+		return fail.New("You cannot remove names at this time")
+	}
+
+	for i := range p.Names {
+		if p.Names[i] == name {
+			p.Names = append(p.Names[:i], p.Names[i+1:]...)
+			p.game.updatePlayers()
+			return nil
+		}
+	}
+
+	return nil
 }

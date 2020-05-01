@@ -5,8 +5,8 @@
 package game
 
 import (
-	"fmt"
 	"sync"
+	"time"
 
 	"github.com/timshannon/threenamesinahat/fail"
 )
@@ -26,15 +26,29 @@ const (
 	stageEnd     = "end"
 )
 
-type Game struct {
-	sync.Mutex
+const (
+	timePerTurn      = 60 * time.Second // how much time each player gets per turn
+	setupTimePerName = 30 * time.Second // how much time per name each player gets during game setup
+)
 
+type Game struct {
+	sync.RWMutex
+	gameState
+}
+
+type gameState struct {
 	Code           string  `json:"code"`
 	NamesPerPlayer int     `json:"namesPerPlayer"`
 	Team1          Team    `json:"team1"`
 	Team2          Team    `json:"team2"`
 	Leader         *Player `json:"leader"`
 	Stage          string  `json:"stage"`
+	Timer          struct {
+		Seconds int `json:"seconds"`
+		Left    int `json:"left"`
+	} `json:"timer"`
+
+	nameList []string
 }
 
 // join adds a new player to the game
@@ -44,8 +58,8 @@ func (g *Game) join(name string) (*Player, error) {
 	}
 	g.Lock()
 	defer func() {
-		g.updatePlayers()
 		g.Unlock()
+		g.updatePlayers()
 	}()
 
 	if player, ok := g.Team1.player(name); ok {
@@ -100,8 +114,8 @@ func (g *Game) setNamesPerPlayer(who *Player, num int) error {
 
 	g.Lock()
 	defer func() {
-		g.updatePlayers()
 		g.Unlock()
+		g.updatePlayers()
 	}()
 
 	g.NamesPerPlayer = num
@@ -109,11 +123,14 @@ func (g *Game) setNamesPerPlayer(who *Player, num int) error {
 }
 
 func (g *Game) updatePlayers() {
+	g.RLock()
+	defer g.RUnlock()
 	g.Team1.updatePlayers()
 	g.Team2.updatePlayers()
 }
 
 func (g *Game) removePlayer(name string) {
+	// TODO: If player is leader, make a new leader?
 	if !g.Team1.removePlayer(name) {
 		g.Team2.removePlayer(name)
 	}
@@ -123,10 +140,8 @@ func (g *Game) removePlayer(name string) {
 func (g *Game) startGame(who *Player) error {
 	g.Lock()
 	defer func() {
-		fmt.Println("Before update")
-		g.updatePlayers()
-		fmt.Println("After update")
 		g.Unlock()
+		g.updatePlayers()
 	}()
 
 	if !who.isLeader() {
@@ -141,11 +156,11 @@ func (g *Game) startGame(who *Player) error {
 
 	if len(g.Team1.Players) < 2 || len(g.Team2.Players) < 2 {
 		// return to pregame and wait for players to join
-		fmt.Println("return to pregame and wait for players to join")
 		return nil
 	}
 
 	g.Stage = stageSetup
+	g.startTimer(int((setupTimePerName)/time.Second)*g.NamesPerPlayer, g.updatePlayers, g.startRound1)
 
 	return nil
 }
@@ -153,8 +168,8 @@ func (g *Game) startGame(who *Player) error {
 func (g *Game) switchTeams(who *Player) {
 	g.Lock()
 	defer func() {
-		g.updatePlayers()
 		g.Unlock()
+		g.updatePlayers()
 	}()
 
 	if g.Team1.removePlayer(who.Name) {
@@ -163,4 +178,38 @@ func (g *Game) switchTeams(who *Player) {
 		g.Team2.removePlayer(who.Name)
 		g.Team1.addExistingPlayer(who)
 	}
+}
+
+func (g *Game) startRound1() {
+	g.Lock()
+	g.Stage = stageRound1
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+}
+
+// func (g *Game) loadNames() {
+
+// }
+
+func (g *Game) startTimer(seconds int, tick func(), finish func()) {
+	go func() {
+		g.Lock()
+		g.Timer.Seconds = seconds
+		g.Timer.Left = seconds
+		g.Unlock()
+
+		ticker := time.NewTicker(1 * time.Second)
+		for range ticker.C {
+			tick()
+			g.Lock()
+			g.Timer.Left--
+			g.Unlock()
+			if g.Timer.Left <= 0 {
+				ticker.Stop()
+			}
+		}
+		finish()
+	}()
 }

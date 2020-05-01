@@ -51,8 +51,8 @@
                         </button>
                         <h2>Enter the Code below to join</h2>
                         <h1 id="gameCode"><strong>{{code}}</strong></h1>
-                        <div v-if="leader">
-                            <button v-if="canStart"
+                        <div v-if="canStart">
+                            <button v-if="leader"
                                 @click="startGame"
                                 :disabled="loading"
                                 :class="{'loading':loading}"
@@ -60,7 +60,7 @@
                                 Start the Game if everyone is ready
                             </button>
                             <div v-else class="alert alert-primary">
-                                Waiting until each team has at least 2 players
+                                Waiting for the game to start
                             </div>
                         </div>
                         <div v-else class="alert alert-primary">
@@ -78,10 +78,10 @@
                                     <h3>Team 1</h3>
                                     <p v-for="player of game.team1.players"
                                         key="player.name"
-                                        class="player-name"
-                                        :class="{'self': player.name === playerName}">
-                                        <span v-if="player.name === game.leader.name">&#9733;</span>
+                                        class="list-name"
+                                        :class="{'highlight': player.name === playerName}">
                                         {{player.name}}
+                                        <span v-if="player.name === game.leader.name" class="badge">leader</span>
                                     </p>
                                 </div>
                                 <div class="col-1"></div>
@@ -90,30 +90,49 @@
                                     <h3>Team 2</h3>
                                     <p v-for="player of game.team2.players"
                                         key="player.name"
-                                        :class="{'self': player.name === playerName}"
-                                        class="player-name">
-                                        <span v-if="player.name === game.leader.name">&#9733;</span>
+                                        :class="{'highlight': player.name === playerName}"
+                                        class="list-name">
                                         {{player.name}}
+                                        <span v-if="player.name === game.leader.name" class="badge">leader</span>
                                     </p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div v-if="game.stage=='setup'">
-                        <h3>Please Enter {{game.namesPerPlayer}} names</h3>
-                        <form @submit.prevent="submitName">
-                            <div class="form-group large">
-                                <label for="addName">Enter a name</label>
-                                <p>Pick a name everyone in the game would recognize</p>
-                                <input class="input-block"
-                                    v-model="addName"
-                                    v-focus
-                                    type="text"
-                                    id="addName">
-                                <button type="submit" class="btn-large">Add</button>
-                            </div>
-                        </form>
+                        <div class="progress margin-top margin-bottom">
+                            <div class="bar" :class="timerStyle" :style="{width: timerPercent + '%'}"></div>
+                        </div>
+                        <div v-if="namesLeft >= 1">
+                            <h3 v-if="namesLeft === game.namesPerPlayer">Please enter {{namesLeft}} names</h3>
+                            <h3 v-else-if="namesLeft === 1">Please enter 1 more name</h3>
+                            <h3 v-else>Please enter {{namesLeft}} more names</h3>
+                            <form @submit.prevent="submitName">
+                                <div class="form-group large">
+                                    <p>Pick a name everyone in the game would recognize</p>
+                                    <!-- TODO: add more hints as timer ticks -->
+                                    <input class="input-block"
+                                        v-model="addName"
+                                        v-focus
+                                        type="text"
+                                        id="addName">
+                                    <button type="submit" class="btn-large margin-top">Add</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div v-else class="alert alert-primary">
+                            Waiting for the other players to finish adding names
+                        </div>
+                        <div v-if="namesLeft !== game.namesPerPlayer" class="border border-3 border-primary text-left
+                            padding-large margin-large">
+                            <p v-for="name of player.names" class="list-name" key="name">
+                                <button class="paper-btn margin-right" @click="removeName(name)">X</button> {{name}}
+                            </p>
+                        </div>
 
+                    </div>
+                    <div v-if="game.stage=='round1'">
+                        <h1>Round 1</h1>
                     </div>
                 </div>
             </div>
