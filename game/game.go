@@ -5,6 +5,7 @@
 package game
 
 import (
+	"math/rand"
 	"sync"
 	"time"
 
@@ -20,22 +21,23 @@ type Msg struct {
 const (
 	stagePregame = "pregame" // players join
 	stageSetup   = "setup"   // players add names
-	stageRound1  = "round1"
-	stageRound2  = "round2"
-	stageRound3  = "round3"
+	stagePlaying = "playing"
 	stageEnd     = "end"
 )
 
 const (
-	timePerTurn      = 60 * time.Second // how much time each player gets per turn
-	setupTimePerName = 30 * time.Second // how much time per name each player gets during game setup
+	secondsPerTurn      = 30 // how much time each player gets per turn
+	setupSecondsPerName = 30 // how much time per name each player gets during game setup
 )
 
 type Game struct {
-	sync.RWMutex
+	sync.RWMutex // manage the lock in methods, functions expect lock to be already managed
 	gameState
 }
 
+// gameState is copied out for JSON encoding
+// mutexes can't be copied, so sync access is managed in Game
+// RWMutex is Read Locked, then the state is copied to send to players
 type gameState struct {
 	Code           string  `json:"code"`
 	NamesPerPlayer int     `json:"namesPerPlayer"`
@@ -43,15 +45,23 @@ type gameState struct {
 	Team2          Team    `json:"team2"`
 	Leader         *Player `json:"leader"`
 	Stage          string  `json:"stage"`
+	Round          int     `json:"round"`
 	Timer          struct {
 		Seconds int `json:"seconds"`
 		Left    int `json:"left"`
 	} `json:"timer"`
+	ClueGiver  *Player `json:"clueGiver"`
+	Team1Score int     `json:"team1Score"`
+	Team2Score int     `json:"team2Score"`
 
-	nameList []string
+	nameList       []string
+	clueGiverTrack struct {
+		team1Index int
+		team2Index int
+		team1      bool
+	}
 }
 
-// join adds a new player to the game
 func (g *Game) join(name string) (*Player, error) {
 	if name == "" {
 		return nil, fail.New("You must provide a name before joining")
@@ -160,7 +170,31 @@ func (g *Game) startGame(who *Player) error {
 	}
 
 	g.Stage = stageSetup
-	g.startTimer(int((setupTimePerName)/time.Second)*g.NamesPerPlayer, g.updatePlayers, g.startRound1)
+	g.startTimer(setupSecondsPerName*g.NamesPerPlayer, func() {
+		g.RLock()
+		startRound := true
+		for _, p := range g.Team1.Players {
+			if len(p.names()) < g.NamesPerPlayer {
+				startRound = false
+				break
+			}
+		}
+
+		if startRound {
+			for _, p := range g.Team2.Players {
+				if len(p.names()) < g.NamesPerPlayer {
+					startRound = false
+					break
+				}
+			}
+		}
+		g.RUnlock()
+		if startRound {
+			// if all players have submitted the necessary names, end the timer early and start the round
+			g.stopTimer() // will start the round on the subsequent tick
+		}
+		g.updatePlayers()
+	}, func() { g.startRound(1) })
 
 	return nil
 }
@@ -180,18 +214,11 @@ func (g *Game) switchTeams(who *Player) {
 	}
 }
 
-func (g *Game) startRound1() {
+func (g *Game) stopTimer() {
 	g.Lock()
-	g.Stage = stageRound1
-	defer func() {
-		g.Unlock()
-		g.updatePlayers()
-	}()
+	g.Timer.Left = 0
+	g.Unlock()
 }
-
-// func (g *Game) loadNames() {
-
-// }
 
 func (g *Game) startTimer(seconds int, tick func(), finish func()) {
 	go func() {
@@ -208,8 +235,136 @@ func (g *Game) startTimer(seconds int, tick func(), finish func()) {
 			g.Unlock()
 			if g.Timer.Left <= 0 {
 				ticker.Stop()
+				break
 			}
 		}
+
 		finish()
+	}()
+}
+
+func (g *Game) startRound(round int) {
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+
+	g.Stage = stagePlaying
+	g.Round = round
+	shuffleNames(g)
+	g.clueGiverTrack.team1Index = 0
+	g.clueGiverTrack.team2Index = 0
+	g.clueGiverTrack.team1 = true
+	g.ClueGiver = g.Team1.Players[0]
+
+}
+
+func shuffleNames(g *Game) {
+	g.nameList = nil
+
+	for _, p := range g.Team1.Players {
+		g.nameList = append(g.nameList, p.names()...)
+	}
+
+	for _, p := range g.Team2.Players {
+		g.nameList = append(g.nameList, p.names()...)
+	}
+
+	rand.Shuffle(len(g.nameList), func(i, j int) {
+		g.nameList[i], g.nameList[j] = g.nameList[j], g.nameList[i]
+	})
+}
+
+func nextPlayerTurn(g *Game) {
+	g.clueGiverTrack.team1 = !g.clueGiverTrack.team1
+	if g.clueGiverTrack.team1 {
+		g.clueGiverTrack.team1Index++
+		if g.clueGiverTrack.team1Index >= len(g.Team1.Players) {
+			g.clueGiverTrack.team1Index = 0
+		}
+		g.ClueGiver = g.Team1.Players[g.clueGiverTrack.team1Index]
+		return
+	}
+
+	g.clueGiverTrack.team2Index++
+	if g.clueGiverTrack.team2Index >= len(g.Team2.Players) {
+		g.clueGiverTrack.team2Index = 0
+	}
+	g.ClueGiver = g.Team2.Players[g.clueGiverTrack.team2Index]
+}
+
+func (g *Game) startTurn(p *Player) error {
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+
+	if g.Stage != stagePlaying {
+		return fail.New("Game has not yet started")
+	}
+
+	if g.ClueGiver.Name != p.Name {
+		return fail.New("It is not currently your turn.  Please wait")
+	}
+
+	p.Send <- Msg{Type: "name", Data: p.game.nameList[0]}
+
+	g.startTimer(secondsPerTurn, g.updatePlayers, func() {
+		g.Lock()
+		defer func() {
+			g.Unlock()
+			g.updatePlayers()
+		}()
+		nextPlayerTurn(g)
+	})
+
+	return nil
+}
+
+func (g *Game) nextName(p *Player) error {
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+
+	if g.Stage != stagePlaying {
+		return fail.New("Game has not yet started")
+	}
+
+	if g.ClueGiver.Name != p.Name {
+		return fail.New("It is not currently your turn.  Please wait")
+	}
+
+	if g.Timer.Left == 0 {
+		return nil
+	}
+
+	g.nameList = g.nameList[1:]
+	if g.clueGiverTrack.team1 {
+		g.Team1Score++
+	} else {
+		g.Team2Score++
+	}
+	if len(g.nameList) == 0 {
+		if g.Round == 3 {
+			go g.endGame() // run on a separate go routine to prevent deadlock
+			return nil
+		}
+		g.startRound(g.Round + 1)
+	}
+
+	p.Send <- Msg{Type: "name", Data: g.nameList[0]}
+	return nil
+}
+
+func (g *Game) endGame() {
+	g.Lock()
+	g.Stage = stageEnd
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
 	}()
 }

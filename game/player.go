@@ -17,7 +17,7 @@ const timeout = 3 * time.Second
 
 // Player keeps track of a given player as well as is the communication channel
 type Player struct {
-	sync.Mutex
+	sync.RWMutex
 	Name  string   `json:"name"`
 	Names []string `json:"names"`
 
@@ -72,6 +72,11 @@ func recieve(p *Player) {
 				} else {
 					p.ok(fail.New("Invalid data type for removename.  Got %T wanted string", m.Data))
 				}
+
+			case "startturn":
+				p.ok(p.game.startTurn(p))
+			case "nextname":
+				p.ok(p.game.nextName(p))
 			default:
 				p.ok(fail.New("%s is an invalid message type", m.Type))
 			}
@@ -117,7 +122,15 @@ func (p *Player) ping() bool {
 }
 
 func (p *Player) isLeader() bool {
+	p.RLock()
+	defer p.RUnlock()
 	return p.Name == p.game.Leader.Name
+}
+
+func (p *Player) names() []string {
+	p.RLock()
+	defer p.RUnlock()
+	return p.Names
 }
 
 func (p *Player) addName(name string) error {

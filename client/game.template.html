@@ -98,9 +98,9 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> <!-- pregame -->
                     <div v-if="game.stage=='setup'">
-                        <div class="progress margin-top margin-bottom">
+                        <div v-if="game.timer.left> 0" v-cloak class="progress margin-top margin-bottom">
                             <div class="bar" :class="timerStyle" :style="{width: timerPercent + '%'}"></div>
                         </div>
                         <div v-if="namesLeft >= 1">
@@ -126,18 +126,49 @@
                         <div v-if="namesLeft !== game.namesPerPlayer" class="border border-3 border-primary text-left
                             padding-large margin-large">
                             <p v-for="name of player.names" class="list-name" key="name">
-                                <button class="paper-btn margin-right" @click="removeName(name)">X</button> {{name}}
+                                <button class="paper-btn margin-right" @click="removeName(name)">X</button>
+                                {{name}}
                             </p>
                         </div>
 
-                    </div>
-                    <div v-if="game.stage=='round1'">
-                        <h1>Round 1</h1>
+                    </div> <!-- setup -->
+                    <div v-if="game.stage=='playing'">
+                        <h1>Round {{game.round}}</h1>
+                        <div v-if="game.timer.left> 0" v-cloak class="progress margin-top margin-bottom">
+                            <div class="bar" :class="timerStyle" :style="{width: timerPercent + '%'}"></div>
+                        </div>
+
+                        <div class="row flex-center">
+                            <div class="col-5 col border border-6 border-primary">
+                                <h3>Team 1</h3>
+                                <p class="list-name">{{game.team1Score}}</p>
+                            </div>
+                            <div class="col-1"></div>
+                            <div class="col-5 col border border-3 border-primary">
+                                <h3>Team 2</h3>
+                                <p class="list-name">{{game.team2Score}}</p>
+                            </div>
+                        </div>
+
+                        <div v-if="game.clueGiver.name === playerName">
+                            <h2 class="text-secondary">{{currentName}}</h2>
+                            <button v-if="currentName && game.timer.left" class="btn-large"
+                                @click="send('nextname')">Next Name</button>
+                            <button v-else class="btn-large btn-success" @click="send('startturn')">Start</button>
+                        </div>
+                        <div v-else>
+                            <h3>It is {{game.clueGiver.name}}'s turn</h3>
+                            <p v-if="isGuessing">When the timer starts, try to guess the name.</p>
+                            <p v-else>Wait for your team's turn</p>
+                        </div>
+                    </div> <!-- playing -->
+                    <div v-if="game.stage=='end'">
+                        <h1>Game Over</h1>
+                        <!-- TODO: Team whatever won, game stats, play again, etc -->
                     </div>
                 </div>
-            </div>
+            </div><!-- game -->
         </div>
-
         [[template "footer"]]
 
         <script src="/js/vue.min.js"></script>

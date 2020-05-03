@@ -21,6 +21,7 @@ var app = new Vue({
         loading: false,
         error: null,
         addName: "",
+        currentName: "",
     },
     computed: {
         leader: function () {
@@ -70,6 +71,25 @@ var app = new Vue({
             }
             return "success";
         },
+        team: function () {
+            if (!this.game) { return null; }
+            let res = this.game.team1.players.find(player => player.name === this.playerName);
+            if (res) {
+                return "team1";
+            }
+            return "team2";
+        },
+        guessingTeam: function () {
+            if (!this.game || !this.game.clueGiver) { return null; }
+            let res = this.game.team1.players.find(player => player.name === this.game.clueGiver.name);
+            if (res) {
+                return "team1";
+            }
+            return "team2";
+        },
+        isGuessing: function () {
+            return this.team === this.guessingTeam;
+        },
     },
     methods: {
         receive: function (msg) {
@@ -80,6 +100,8 @@ var app = new Vue({
                     break;
                 case "error":
                     this.error = msg.data;
+                case "name":
+                    this.currentName = msg.data;
                 case "ping":
                     this.socket.send({ type: "pong" });
                     break;
@@ -129,10 +151,10 @@ var app = new Vue({
         },
     },
     mounted: async function () {
+        this.playerName = localStorage.getItem("playerName");
         this.code = document.getElementById("game").getAttribute("data-code");
         this.socket = GameSocket(this.receive);
         await this.socket.connect();
-        this.playerName = localStorage.getItem("playerName");
     },
 })
 
