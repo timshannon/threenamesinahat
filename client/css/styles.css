@@ -105,3 +105,9 @@ input.game-code {
     border-bottom-right-radius: 225px 15px;
     border-right: 6px solid #41403e;
 }
+
+.player-name {
+    position: absolute;
+    left:1rem;
+    top:1rem;
+}

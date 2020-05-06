@@ -21,7 +21,8 @@ type Player struct {
 	Name  string   `json:"name"`
 	Names []string `json:"names"`
 
-	chanPing chan bool
+	chanPing  chan bool
+	chanSteal chan bool
 
 	Send    chan Msg `json:"-"`
 	Receive chan Msg `json:"-"`
@@ -31,11 +32,12 @@ type Player struct {
 
 func newPlayer(name string, game *Game) *Player {
 	p := &Player{
-		Name:     name,
-		Send:     make(chan Msg, 2),
-		Receive:  make(chan Msg, 2),
-		chanPing: make(chan bool),
-		game:     game,
+		Name:      name,
+		Send:      make(chan Msg, 2),
+		Receive:   make(chan Msg, 2),
+		chanPing:  make(chan bool),
+		chanSteal: make(chan bool),
+		game:      game,
 	}
 
 	go recieve(p)
@@ -72,11 +74,16 @@ func recieve(p *Player) {
 				} else {
 					p.ok(fail.New("Invalid data type for removename.  Got %T wanted string", m.Data))
 				}
-
 			case "startturn":
 				p.ok(p.game.startTurn(p))
 			case "nextname":
 				p.ok(p.game.nextName(p))
+			case "stealconfirm":
+				p.chanSteal <- true
+			case "stealyes":
+				p.ok(p.game.stealConfirm(p, true))
+			case "stealno":
+				p.ok(p.game.stealConfirm(p, false))
 			default:
 				p.ok(fail.New("%s is an invalid message type", m.Type))
 			}

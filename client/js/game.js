@@ -22,6 +22,8 @@ var app = new Vue({
         error: null,
         addName: "",
         currentName: "",
+        stealing: false,
+        stealCheck: false,
     },
     computed: {
         leader: function () {
@@ -62,10 +64,11 @@ var app = new Vue({
         timerStyle: function () {
             if (this.game && this.game.timer) {
                 // TODO add beating animation
-                if (this.game.timer.left < 10) {
+                let ratio = this.game.left / this.game.timer.seconds;
+                if (ratio < .25) {
                     return "danger";
                 }
-                if (this.game.timer.left < 30) {
+                if (ratio < .5) {
                     return "warning";
                 }
             }
@@ -75,17 +78,23 @@ var app = new Vue({
             if (!this.game) { return null; }
             let res = this.game.team1.players.find(player => player.name === this.playerName);
             if (res) {
-                return "team1";
+                return 1;
             }
-            return "team2";
+            return 2;
         },
         guessingTeam: function () {
             if (!this.game || !this.game.clueGiver) { return null; }
             let res = this.game.team1.players.find(player => player.name === this.game.clueGiver.name);
             if (res) {
-                return "team1";
+                return 1;
             }
-            return "team2";
+            return 2;
+        },
+        waitingTeam: function () {
+            if (this.team === 1) {
+                return 2;
+            }
+            return 1;
         },
         isGuessing: function () {
             return this.team === this.guessingTeam;
@@ -102,6 +111,10 @@ var app = new Vue({
                     this.error = msg.data;
                 case "name":
                     this.currentName = msg.data;
+                case "steal":
+                    this.stealing = true;
+                case "stealcheck":
+                    this.stealCheck = true;
                 case "ping":
                     this.socket.send({ type: "pong" });
                     break;
@@ -148,6 +161,18 @@ var app = new Vue({
                 this.game.namesPerPlayer = 20;
             }
             this.socket.send({ type: "namesperplayer", data: this.game.namesPerPlayer });
+        },
+        stealConfirm: function () {
+            this.send("stealconfirm");
+            this.stealing = false;
+        },
+        stealCheckConfirm: function (correct) {
+            if (correct) {
+                this.send("stealyes");
+            } else {
+                this.send("stealno");
+            }
+            this.stealConfirm = false;
         },
     },
     mounted: async function () {

@@ -28,6 +28,7 @@ const (
 const (
 	secondsPerTurn      = 30 // how much time each player gets per turn
 	setupSecondsPerName = 30 // how much time per name each player gets during game setup
+	secondsToSteal      = 15 // how much time the opposing team gets to steal
 )
 
 type Game struct {
@@ -60,6 +61,7 @@ type gameState struct {
 		team2Index int
 		team1      bool
 	}
+	canSteal bool
 }
 
 func (g *Game) join(name string) (*Player, error) {
@@ -226,17 +228,19 @@ func (g *Game) startTimer(seconds int, tick func(), finish func()) {
 		g.Timer.Seconds = seconds
 		g.Timer.Left = seconds
 		g.Unlock()
+		g.updatePlayers()
 
 		ticker := time.NewTicker(1 * time.Second)
 		for range ticker.C {
 			tick()
 			g.Lock()
 			g.Timer.Left--
-			g.Unlock()
 			if g.Timer.Left <= 0 {
 				ticker.Stop()
+				g.Unlock()
 				break
 			}
+			g.Unlock()
 		}
 
 		finish()
@@ -244,6 +248,9 @@ func (g *Game) startTimer(seconds int, tick func(), finish func()) {
 }
 
 func (g *Game) startRound(round int) {
+	if round != 1 {
+		g.stopTimer() // stop timer incase previous round end early
+	}
 	g.Lock()
 	defer func() {
 		g.Unlock()
@@ -252,12 +259,15 @@ func (g *Game) startRound(round int) {
 
 	g.Stage = stagePlaying
 	g.Round = round
+	g.canSteal = false
 	shuffleNames(g)
-	g.clueGiverTrack.team1Index = 0
-	g.clueGiverTrack.team2Index = 0
-	g.clueGiverTrack.team1 = true
-	g.ClueGiver = g.Team1.Players[0]
-
+	if round == 1 {
+		// reset player list
+		g.clueGiverTrack.team1 = false
+		g.clueGiverTrack.team1Index = -1
+		g.clueGiverTrack.team2Index = -1
+		nextPlayerTurn(g)
+	}
 }
 
 func shuffleNames(g *Game) {
@@ -309,16 +319,21 @@ func (g *Game) startTurn(p *Player) error {
 		return fail.New("It is not currently your turn.  Please wait")
 	}
 
-	p.Send <- Msg{Type: "name", Data: p.game.nameList[0]}
-
+	g.canSteal = true
 	g.startTimer(secondsPerTurn, g.updatePlayers, func() {
 		g.Lock()
 		defer func() {
 			g.Unlock()
 			g.updatePlayers()
 		}()
-		nextPlayerTurn(g)
+		if g.canSteal {
+			g.steal()
+		} else {
+			nextPlayerTurn(g)
+		}
 	})
+
+	p.Send <- Msg{Type: "name", Data: p.game.nameList[0]}
 
 	return nil
 }
@@ -353,7 +368,9 @@ func (g *Game) nextName(p *Player) error {
 			go g.endGame() // run on a separate go routine to prevent deadlock
 			return nil
 		}
-		g.startRound(g.Round + 1)
+		go g.startRound(g.Round + 1) // run on a separate go routine to prevent deadlock
+
+		return nil
 	}
 
 	p.Send <- Msg{Type: "name", Data: g.nameList[0]}
@@ -361,10 +378,109 @@ func (g *Game) nextName(p *Player) error {
 }
 
 func (g *Game) endGame() {
+	g.stopTimer()
 	g.Lock()
 	g.Stage = stageEnd
 	defer func() {
 		g.Unlock()
 		g.updatePlayers()
 	}()
+}
+
+// send final answer vote button to stealing team
+// if entire team responds final answer before timer runs out, then ClueGiver gets to
+// set if they got it right or not
+func (g *Game) steal() {
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+
+	var wg sync.WaitGroup
+	c := make(chan bool)
+
+	var players []*Player
+	if g.clueGiverTrack.team1 {
+		players = g.Team1.Players
+	} else {
+		players = g.Team1.Players
+	}
+
+	wg.Add(len(players))
+	for _, player := range players {
+		go func(p *Player) {
+			p.Send <- Msg{Type: "steal"}
+			<-p.chanSteal
+			wg.Done()
+		}(player)
+	}
+
+	g.startTimer(secondsToSteal, g.updatePlayers, func() {
+		g.Lock()
+		defer func() {
+			g.Unlock()
+			g.updatePlayers()
+		}()
+
+		select {
+		case <-c:
+			go func() {
+				// is the steal answer correct? send yes/no
+				g.ClueGiver.Send <- Msg{Type: "stealcheck"}
+			}()
+		default:
+			// players didn't vote in time
+			nextPlayerTurn(g)
+		}
+	})
+
+	wg.Wait()
+	c <- true
+}
+
+func (g *Game) stealConfirm(p *Player, correct bool) error {
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+	if g.Stage != stagePlaying {
+		return fail.New("Game has not yet started")
+	}
+
+	if g.ClueGiver.Name != p.Name {
+		return fail.New("It is not currently your turn.  Please wait")
+	}
+
+	if correct {
+		g.nameList = g.nameList[1:]
+		if g.clueGiverTrack.team1 {
+			g.Team2Score++
+		} else {
+			g.Team1Score++
+		}
+
+		if len(g.nameList) == 0 {
+			if g.Round == 3 {
+				go g.endGame() // run on a separate go routine to prevent deadlock
+				return nil
+			}
+			go g.startRound(g.Round + 1) // run on a separate go routine to prevent deadlock
+
+			return nil
+		}
+		nextPlayerTurn(g)
+		return nil
+	}
+
+	if len(g.nameList) > 1 {
+		// shuffle remaining names so next name is likely different
+		rand.Shuffle(len(g.nameList), func(i, j int) {
+			g.nameList[i], g.nameList[j] = g.nameList[j], g.nameList[i]
+		})
+	}
+
+	nextPlayerTurn(g)
+	return nil
 }

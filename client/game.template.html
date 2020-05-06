@@ -7,6 +7,7 @@
     <body>
         <div class="paper container text-center margin-top">
             <div id="game" data-code="[[.Code]]">
+                <span v-if="game" v-cloak class="player-name">{{playerName}}</span>
                 <div v-if="error" v-cloak>
                     <div class="alert alert-danger">{{error}}</div>
                     <a class="paper-btn btn-large" href="/game/[[.Code]]">
@@ -49,7 +50,7 @@
                             class="btn-settings">
                             [[template "gear"]]
                         </button>
-                        <h2>Enter the Code below to join</h2>
+                        <h2>New players can enter the code below to join</h2>
                         <h1 id="gameCode"><strong>{{code}}</strong></h1>
                         <div v-if="canStart">
                             <button v-if="leader"
@@ -75,7 +76,7 @@
                             <div class="row flex-center">
                                 <div class="col-5 col border border-6
                                     border-primary">
-                                    <h3>Team 1</h3>
+                                    <h2 class="margin-none">Team 1</h2>
                                     <p v-for="player of game.team1.players"
                                         key="player.name"
                                         class="list-name"
@@ -87,7 +88,7 @@
                                 <div class="col-1"></div>
                                 <div class="col-5 col border border-3
                                     border-primary">
-                                    <h3>Team 2</h3>
+                                    <h2 class="margin-none">Team 2</h2>
                                     <p v-for="player of game.team2.players"
                                         key="player.name"
                                         :class="{'highlight': player.name === playerName}"
@@ -133,28 +134,37 @@
 
                     </div> <!-- setup -->
                     <div v-if="game.stage=='playing'">
-                        <h1>Round {{game.round}}</h1>
+                        <h1 class="margin-none">Round {{game.round}}</h1>
                         <div v-if="game.timer.left> 0" v-cloak class="progress margin-top margin-bottom">
                             <div class="bar" :class="timerStyle" :style="{width: timerPercent + '%'}"></div>
                         </div>
 
                         <div class="row flex-center">
                             <div class="col-5 col border border-6 border-primary">
-                                <h3>Team 1</h3>
+                                <h2 class="margin-none">Team 1</h2>
                                 <p class="list-name">{{game.team1Score}}</p>
                             </div>
                             <div class="col-1"></div>
                             <div class="col-5 col border border-3 border-primary">
-                                <h3>Team 2</h3>
+                                <h2 class="margin-none">Team 2</h2>
                                 <p class="list-name">{{game.team2Score}}</p>
                             </div>
                         </div>
 
                         <div v-if="game.clueGiver.name === playerName">
-                            <h2 class="text-secondary">{{currentName}}</h2>
+                            <h1 class="text-secondary"><strong>{{currentName}}</strong></h1>
                             <button v-if="currentName && game.timer.left" class="btn-large"
                                 @click="send('nextname')">Next Name</button>
                             <button v-else class="btn-large btn-success" @click="send('startturn')">Start</button>
+                        </div>
+                        <div v-else-if="stealing">
+                            <h3 class="margin-none">Team {{waitingTeam}} gets a chance to steal</h3>
+                            <button class="btn-large btn-success" @click="stealConfirm">Final Answer</button>
+                        </div>
+                        <div v-else-if="stealCheck">
+                            <h3 class="margin-none">Did <strong>Team {{waitingTeam}}</strong> get it correct?</h3>
+                            <button class="btn-large btn-success" @click="stealCheckConfirm(true)">Yes</button>
+                            <button class="btn-large btn-danger" @click="stealCheckConfirm(false)">No</button>
                         </div>
                         <div v-else>
                             <h3>It is {{game.clueGiver.name}}'s turn</h3>
@@ -163,7 +173,7 @@
                         </div>
                     </div> <!-- playing -->
                     <div v-if="game.stage=='end'">
-                        <h1>Game Over</h1>
+                        <h1 class="margin-none">Game Over</h1>
                         <!-- TODO: Team whatever won, game stats, play again, etc -->
                     </div>
                 </div>

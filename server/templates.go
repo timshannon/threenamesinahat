@@ -49,7 +49,6 @@ func (t *templateWriter) execute(tdata interface{}) {
 	err := t.template.Execute(&b, tdata)
 
 	if err != nil {
-		// TODO: Handle error
 		log.Printf("Error executing template: %s", err)
 	} else {
 		_, err = io.Copy(t, &b)
