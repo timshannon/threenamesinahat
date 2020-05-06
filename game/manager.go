@@ -14,7 +14,7 @@ import (
 )
 
 type gameManager struct {
-	sync.Mutex
+	sync.RWMutex
 	games []*Game
 }
 
@@ -22,13 +22,14 @@ var manager = &gameManager{}
 
 // New Starts a new game
 func New() *Game {
+	rand.Seed(time.Now().UnixNano())
+	code := generateCode(4)
 	manager.Lock()
 	defer manager.Unlock()
 
-	rand.Seed(time.Now().UnixNano())
 	g := &Game{
 		gameState: gameState{
-			Code:           generateCode(4),
+			Code:           code,
 			NamesPerPlayer: 3,
 			Stage:          stagePregame,
 		},
@@ -39,6 +40,8 @@ func New() *Game {
 }
 
 func Find(code string) (*Game, bool) {
+	manager.RLock()
+	defer manager.RUnlock()
 	code = strings.ToUpper(code)
 
 	for i := range manager.games {

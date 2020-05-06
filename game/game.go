@@ -19,10 +19,11 @@ type Msg struct {
 
 // pregame -> setup -> round1 -> round2 -> round3 -> end
 const (
-	stagePregame = "pregame" // players join
-	stageSetup   = "setup"   // players add names
-	stagePlaying = "playing"
-	stageEnd     = "end"
+	stagePregame  = "pregame" // players join
+	stageSetup    = "setup"   // players add names
+	stagePlaying  = "playing"
+	stageStealing = "stealing"
+	stageEnd      = "end"
 )
 
 const (
@@ -287,6 +288,7 @@ func shuffleNames(g *Game) {
 }
 
 func nextPlayerTurn(g *Game) {
+	g.Stage = stagePlaying
 	g.clueGiverTrack.team1 = !g.clueGiverTrack.team1
 	if g.clueGiverTrack.team1 {
 		g.clueGiverTrack.team1Index++
@@ -327,12 +329,21 @@ func (g *Game) startTurn(p *Player) error {
 			g.updatePlayers()
 		}()
 		if g.canSteal {
-			g.steal()
+			steal(g)
 		} else {
 			nextPlayerTurn(g)
 		}
 	})
 
+	if len(g.nameList) == 0 {
+		if g.Round == 3 {
+			go g.endGame() // run on a separate go routine to prevent deadlock
+			return nil
+		}
+		go g.startRound(g.Round + 1) // run on a separate go routine to prevent deadlock
+
+		return nil
+	}
 	p.Send <- Msg{Type: "name", Data: p.game.nameList[0]}
 
 	return nil
@@ -390,19 +401,14 @@ func (g *Game) endGame() {
 // send final answer vote button to stealing team
 // if entire team responds final answer before timer runs out, then ClueGiver gets to
 // set if they got it right or not
-func (g *Game) steal() {
-	g.Lock()
-	defer func() {
-		g.Unlock()
-		g.updatePlayers()
-	}()
-
+func steal(g *Game) {
+	g.Stage = stageStealing
 	var wg sync.WaitGroup
 	c := make(chan bool)
 
 	var players []*Player
 	if g.clueGiverTrack.team1 {
-		players = g.Team1.Players
+		players = g.Team2.Players
 	} else {
 		players = g.Team1.Players
 	}
@@ -415,6 +421,12 @@ func (g *Game) steal() {
 			wg.Done()
 		}(player)
 	}
+
+	go func() {
+		wg.Wait() // wait for responses
+		g.stopTimer()
+		c <- true
+	}()
 
 	g.startTimer(secondsToSteal, g.updatePlayers, func() {
 		g.Lock()
@@ -435,8 +447,6 @@ func (g *Game) steal() {
 		}
 	})
 
-	wg.Wait()
-	c <- true
 }
 
 func (g *Game) stealConfirm(p *Player, correct bool) error {
@@ -445,8 +455,8 @@ func (g *Game) stealConfirm(p *Player, correct bool) error {
 		g.Unlock()
 		g.updatePlayers()
 	}()
-	if g.Stage != stagePlaying {
-		return fail.New("Game has not yet started")
+	if g.Stage != stageStealing {
+		return fail.New("Turn is not being stolen currently")
 	}
 
 	if g.ClueGiver.Name != p.Name {

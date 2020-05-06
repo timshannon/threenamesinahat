@@ -64,7 +64,7 @@ var app = new Vue({
         timerStyle: function () {
             if (this.game && this.game.timer) {
                 // TODO add beating animation
-                let ratio = this.game.left / this.game.timer.seconds;
+                let ratio = this.game.timer.left / this.game.timer.seconds;
                 if (ratio < .25) {
                     return "danger";
                 }
@@ -91,7 +91,7 @@ var app = new Vue({
             return 2;
         },
         waitingTeam: function () {
-            if (this.team === 1) {
+            if (this.guessingTeam === 1) {
                 return 2;
             }
             return 1;
@@ -109,12 +109,16 @@ var app = new Vue({
                     break;
                 case "error":
                     this.error = msg.data;
+                    break;
                 case "name":
                     this.currentName = msg.data;
+                    break;
                 case "steal":
                     this.stealing = true;
+                    break;
                 case "stealcheck":
                     this.stealCheck = true;
+                    break;
                 case "ping":
                     this.socket.send({ type: "pong" });
                     break;

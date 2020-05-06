@@ -16,10 +16,15 @@ func generateCode(length int) string {
 	code := ""
 
 	for i := 0; i < length; i++ {
-		code += string(codeChars[rand.Intn(26)])
+		code += string(codeChars[rand.Intn(len(codeChars))])
 	}
 
 	if isDirty(code) {
+		return generateCode(length)
+	}
+
+	// make sure code isn't already in use
+	if _, ok := Find(code); ok {
 		return generateCode(length)
 	}
 
