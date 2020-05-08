@@ -138,7 +138,6 @@
                         <div v-if="game.timer.left> 0" v-cloak class="progress margin-top margin-bottom">
                             <div class="bar" :class="timerStyle" :style="{width: timerPercent + '%'}"></div>
                         </div>
-
                         <div v-if="game.stage=='playing'">
                             <div v-if="game.clueGiver.name === playerName">
                                 <h1 class="text-secondary"><strong>{{currentName}}</strong></h1>
@@ -148,7 +147,8 @@
                             </div>
                             <div v-else>
                                 <h3>It is {{game.clueGiver.name}}'s turn</h3>
-                                <p v-if="isGuessing">When the timer starts, try to guess the name.</p>
+                                <p v-if="isGuessing && game.timer.left> 0">Try to guess the name!</p>
+                                <p v-else-if="isGuessing">When the timer starts, try to guess the name.</p>
                                 <p v-else>Wait for your team's turn</p>
                             </div>
                         </div>
@@ -158,7 +158,7 @@
                                 <h1 class="text-secondary"><strong>{{currentName}}</strong></h1>
                             </div>
                             <div v-if="stealing">
-                                <button class="btn-large btn-success" @click="stealConfirm">Final Answer</button>
+                                <button class="btn-large btn-success" @click="sendStealConfirm">Final Answer</button>
                             </div>
                             <div v-else-if="stealCheck">
                                 <h3 class="margin-none">Did <strong>Team {{waitingTeam}}</strong> get it correct?</h3>
@@ -167,23 +167,54 @@
                             </div>
 
                         </div>
+                        <hr class="padding-top-large">
+                        <div v-cloak class="instructions" v-if="game.round===1">
+                            <p>Say anything as long as it's not part of the person's name or a direct reference to
+                                their name.</p>
+                            <p class="text-danger">
+                                No "Rhymes with"
+                                <br>
+                                No "Starts with"
+                                <br>
+                                Saying any part of the name
+                            </p>
+                        </div>
+                        <div v-cloak class="instructions" v-if="game.round===2">
+                            <p>Act out clues</p>
+                            <p class="text-danger">
+                                No speaking
+                                <br>
+                                No making noises
+                            </p>
+                        </div>
+                        <div v-cloak class="instructions" v-if="game.round===3">
+                            <p>Say <strong>ONLY ONE</strong> word</p>
+                            <p class="text-danger">
+                                No acting out additional clues
+                                <br>
+                                No speaking any other words
+                                <br>
+                                No making noises
+                            </p>
+                        </div>
+
                         <!-- team scoreboard -->
                         <div class="row flex-center margin-top">
                             <div class="col-5 col border border-6 border-primary">
                                 <h2 class="margin-none">Team 1</h2>
-                                <p class="list-name">{{game.team1Score}}</p>
+                                <p class="list-name">{{game.stats.team1Score}}</p>
                             </div>
                             <div class="col-1"></div>
                             <div class="col-5 col border border-3 border-primary">
                                 <h2 class="margin-none">Team 2</h2>
-                                <p class="list-name">{{game.team2Score}}</p>
+                                <p class="list-name">{{game.stats.team2Score}}</p>
                             </div>
                         </div>
 
                     </div> <!-- playing -->
                     <div v-if="game.stage=='end'">
-                        <h1 class="margin-none">Game Over</h1>
-                        <!-- TODO: Team whatever won, game stats, play again, etc -->
+                        <h2 class="margin-none">Game Over</h2>
+                        <h1 class="text-secondary"><strong>Team {{game.stats.winner}} won!</strong></h1>
                     </div>
                 </div>
             </div><!-- game -->

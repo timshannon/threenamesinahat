@@ -166,17 +166,17 @@ var app = new Vue({
             }
             this.socket.send({ type: "namesperplayer", data: this.game.namesPerPlayer });
         },
-        stealConfirm: function () {
+        sendStealConfirm: function () {
             this.send("stealconfirm");
             this.stealing = false;
         },
         stealCheckConfirm: function (correct) {
+            this.stealConfirm = false;
             if (correct) {
                 this.send("stealyes");
             } else {
                 this.send("stealno");
             }
-            this.stealConfirm = false;
         },
     },
     mounted: async function () {

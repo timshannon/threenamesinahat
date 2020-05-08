@@ -28,7 +28,7 @@ The game is broken into three rounds. Each round goes until there are no more na
 starts with all the names put back in.
 
 **Round 1**: The person who is up has to get their team to guess the current name by saying anything as long as it's
-not part of the person's name or a direct reference to their name. For example they can't do things like "rymes with"
+not part of the person's name or a direct reference to their name. For example they can't do things like "rhymes with"
 or "starts with X" or "ends with X".
 
 **Round 2**: Same as previous rounds, except no words, only silent acting out clues.

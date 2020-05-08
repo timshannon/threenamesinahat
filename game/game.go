@@ -52,9 +52,7 @@ type gameState struct {
 		Seconds int `json:"seconds"`
 		Left    int `json:"left"`
 	} `json:"timer"`
-	ClueGiver  *Player `json:"clueGiver"`
-	Team1Score int     `json:"team1Score"`
-	Team2Score int     `json:"team2Score"`
+	ClueGiver *Player `json:"clueGiver"`
 
 	nameList       []string
 	clueGiverTrack struct {
@@ -63,6 +61,11 @@ type gameState struct {
 		team1      bool
 	}
 	canSteal bool
+	Stats    struct {
+		Winner     int `json:"winner"`
+		Team1Score int `json:"team1Score"`
+		Team2Score int `json:"team2Score"`
+	} `json:"stats"`
 }
 
 func (g *Game) join(name string) (*Player, error) {
@@ -370,9 +373,9 @@ func (g *Game) nextName(p *Player) error {
 
 	g.nameList = g.nameList[1:]
 	if g.clueGiverTrack.team1 {
-		g.Team1Score++
+		g.Stats.Team1Score++
 	} else {
-		g.Team2Score++
+		g.Stats.Team2Score++
 	}
 	if len(g.nameList) == 0 {
 		if g.Round == 3 {
@@ -388,20 +391,13 @@ func (g *Game) nextName(p *Player) error {
 	return nil
 }
 
-func (g *Game) endGame() {
-	g.stopTimer()
-	g.Lock()
-	g.Stage = stageEnd
-	defer func() {
-		g.Unlock()
-		g.updatePlayers()
-	}()
-}
-
 // send final answer vote button to stealing team
 // if entire team responds final answer before timer runs out, then ClueGiver gets to
 // set if they got it right or not
 func steal(g *Game) {
+	if g.Stage != stagePlaying {
+		return
+	}
 	g.Stage = stageStealing
 	var wg sync.WaitGroup
 	c := make(chan bool)
@@ -466,9 +462,9 @@ func (g *Game) stealConfirm(p *Player, correct bool) error {
 	if correct {
 		g.nameList = g.nameList[1:]
 		if g.clueGiverTrack.team1 {
-			g.Team2Score++
+			g.Stats.Team2Score++
 		} else {
-			g.Team1Score++
+			g.Stats.Team1Score++
 		}
 
 		if len(g.nameList) == 0 {
@@ -493,4 +489,20 @@ func (g *Game) stealConfirm(p *Player, correct bool) error {
 
 	nextPlayerTurn(g)
 	return nil
+}
+
+func (g *Game) endGame() {
+	g.stopTimer()
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+	g.Stage = stageEnd
+	if g.Stats.Team1Score > g.Stats.Team2Score {
+		g.Stats.Winner = 1
+	} else if g.Stats.Team2Score > g.Stats.Team1Score {
+		g.Stats.Winner = 2
+	}
+
 }
