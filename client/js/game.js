@@ -179,11 +179,11 @@ var app = new Vue({
             }
         },
     },
-    mounted: async function () {
+    mounted: function () {
         this.playerName = localStorage.getItem("playerName");
         this.code = document.getElementById("game").getAttribute("data-code");
         this.socket = GameSocket(this.receive);
-        await this.socket.connect();
+        this.socket.connect();
     },
 })
 

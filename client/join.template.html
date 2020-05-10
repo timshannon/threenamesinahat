@@ -5,25 +5,32 @@
         <title>Join a Game - Three Names in a Hat</title>
     </head>
     <body>
-        <div class="paper container text-center margin-top">
-            <div id="game">
-                <form @submit.prevent="join">
-                    <div class="form-group large">
-                        <label for="code">Enter a code to join a game</label>
-                        <input class="input-block game-code"
-                            v-model="code"
-                            v-focus
-                            type="text"
-                            maxlength="4"
-                            id="code">
-                        <p v-if="codeErr" v-cloak class="text-danger">{{codeErr}}</p>
-                    </div>
-                    <button type="submit" class="btn-large">Join</button>
-                </form>
+        <div class="game-container">
+            <div class="game-top">
+                <h4 class="margin-none">Three Names in a Hat</h4>
+            </div>
+            <div class="game-middle">
+                <div id="game">
+                    <form @submit.prevent="join">
+                        <div class="form-group large">
+                            <label for="code">Enter a code to join a game</label>
+                            <input class="input-block game-code"
+                                v-model="code"
+                                v-focus
+                                type="text"
+                                maxlength="4"
+                                id="code">
+                            <p v-if="codeErr" v-cloak class="text-danger">{{codeErr}}</p>
+                        </div>
+                        <button type="submit" class="btn-large">Join</button>
+                    </form>
+                </div>
+
+            </div>
+            <div class="game-bottom">
+                [[template "footer"]]
             </div>
         </div>
-
-        [[template "footer"]]
 
         <script src="/js/vue.min.js"></script>
         <script src="/js/join.js"></script>

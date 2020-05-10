@@ -9,16 +9,26 @@
         [[end]]
     </head>
     <body>
-        <div class="paper container text-center margin-top">
-            [[if .GameNotFound]]
-            <h1>Game Not Found</h1>
-            <a class="paper-btn btn-large" href="/join">Try again</a>
+        <div class="game-container">
+            <div class="game-top">
+                <h4 class="margin-none">Three Names in a Hat</h4>
+            </div>
 
-            [[else]]
-            <h1>Page Not Found</h1>
-            <a class="paper-btn btn-large" href="/">Return</a>
-            [[end]]
+            <div class="game-middle">
+                <div>
+                    [[if .GameNotFound]]
+                    <h1 class="margin-none padding-bottom">Game Not Found</h1>
+                    <a class="paper-btn btn-large" href="/join">Try again</a>
+
+                    [[else]]
+                    <h1 class="margin-none padding-bottom">Page Not Found</h1>
+                    <a class="paper-btn btn-large" href="/">Return</a>
+                    [[end]]
+                </div>
+            </div>
+            <div class="game-bottom">
+                [[template "footer"]]
+            </div>
         </div>
-        [[template "footer"]]
     </body>
 </html>

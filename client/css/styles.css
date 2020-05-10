@@ -6,14 +6,56 @@ that can be found in the LICENSE file.
 
 [v-cloak] {display: none}
 
-.page-footer {
+.game-container {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    padding: 1rem;
     text-align: center;
-	width: 100%;
-    position: relative;
-	height: 60px;
-	display: flex;
+    /* papercss default border */
+    border: 2px solid #41403e;
+    border-bottom-left-radius: 15px 255px;
+    border-bottom-right-radius: 225px 15px;
+    border-top-left-radius: 255px 15px;
+    border-top-right-radius: 15px 225px;
+}
+
+
+.game-top {
+    position: absolute;
+    top: 0;
+    bottom: 80%;
+    left: 0;
+    right: 0;
+    margin: 1rem;
+}
+
+.game-middle {
+    position: absolute;
+    top: 20%;
+    bottom: 20%;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    margin-top: 4rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    overflow: scroll;
+}
+
+.game-bottom {
+    position: absolute;
+    display: flex;
+    top: 80%;
+    bottom:0;
+    left: 0;
+    right: 0;
+    margin: 1rem;
+    align-items: center;
+    justify-content: center;
 }
 
 .page-footer > * {
@@ -22,7 +64,11 @@ that can be found in the LICENSE file.
     background: none;
 }
 
-.list-name {
+.text-medium {
+    font-size: 1.5rem;
+}
+
+/* .list-name {
     font-size: 1.75rem;
 }
 .list-name .badge {
@@ -32,7 +78,7 @@ that can be found in the LICENSE file.
 
 .list-name.highlight {
     font-weight: bold;
-}
+} */
 
 .form-group.large input {
     font-size: 2rem;
@@ -91,11 +137,11 @@ input.game-code {
 }
 
 .btn-settings {
-    position: absolute;
-    right:0;
-    top:0;
     border: none;
     box-shadow: none;
+    padding: 0;
+    margin: 0;
+    vertical-align: middle;
 }
 .btn-settings:hover, .btn-settings:focus {
     box-shadow: none;
@@ -106,8 +152,20 @@ input.game-code {
     border-right: 6px solid #41403e;
 }
 
-.player-name {
-    position: absolute;
-    left:1rem;
-    top:1rem;
+.score-board > .col {
+    padding: .5rem;
+}
+
+.score-board .item {
+    overflow: hidden;
+}
+
+.score-board .paper-btn {
+    margin: 0 1rem 0 1rem;
+}
+
+.team-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
 }
