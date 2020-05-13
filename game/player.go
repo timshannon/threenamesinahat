@@ -13,7 +13,7 @@ import (
 	"github.com/timshannon/threenamesinahat/fail"
 )
 
-const timeout = 3 * time.Second
+const timeout = 1 * time.Second
 
 // Player keeps track of a given player as well as is the communication channel
 type Player struct {

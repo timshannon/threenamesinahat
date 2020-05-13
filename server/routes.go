@@ -19,7 +19,12 @@ func setupRoutes() {
 	get("/js/", serveStatic("js", true))
 	get("/", gzipHandler(templateHandler(emptyTemplate, "index.template.html")))
 	get("/new", gzipHandler(func(w http.ResponseWriter, r *http.Request) {
-		g := game.New()
+		g, err := game.New(ipAddress(r))
+		if err != nil {
+			errorPage(w, r)
+			return
+		}
+
 		http.Redirect(w, r, "/game/"+g.Code, http.StatusTemporaryRedirect)
 	}))
 	get("/game/", gzipHandler(templateHandler(gameTemplate, "game.template.html")))

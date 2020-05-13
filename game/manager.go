@@ -5,6 +5,7 @@
 package game
 
 import (
+	"log"
 	"math/rand"
 	"strings"
 	"sync"
@@ -20,8 +21,22 @@ type gameManager struct {
 
 var manager = &gameManager{}
 
+const pollStatus = 30 * time.Second
+
+var newGameRateDelay = &RateDelay{
+	Type:   "newGame",
+	Limit:  10,
+	Delay:  5 * time.Second,
+	Period: 5 * time.Minute,
+	Max:    1 * time.Minute,
+}
+
 // New Starts a new game
-func New() *Game {
+func New(ipAddress string) (*Game, error) {
+	_, err := newGameRateDelay.Attempt(ipAddress)
+	if err != nil {
+		return nil, err
+	}
 	rand.Seed(time.Now().UnixNano())
 	code := generateCode(4)
 	manager.Lock()
@@ -35,8 +50,19 @@ func New() *Game {
 		},
 	}
 
+	time.AfterFunc(pollStatus, func() { cleanGame(g) })
+
 	manager.games = append(manager.games, g)
-	return g
+	return g, nil
+}
+
+func cleanGame(g *Game) {
+	g.cleanPlayers()
+	if g.IsDead() {
+		removeGame(g)
+		return
+	}
+	time.AfterFunc(pollStatus, func() { cleanGame(g) })
 }
 
 func Find(code string) (*Game, bool) {
@@ -65,4 +91,15 @@ func Join(code, name string) (*Player, error) {
 	return player, nil
 }
 
-// TODO cleanup inactive games with no players
+func removeGame(g *Game) {
+	manager.Lock()
+	defer manager.Unlock()
+
+	for i := range manager.games {
+		if manager.games[i].Code == g.Code {
+			manager.games = append(manager.games[:i], manager.games[i+1:]...)
+			log.Printf("Removing game %s", g.Code)
+			return
+		}
+	}
+}

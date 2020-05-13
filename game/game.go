@@ -152,20 +152,6 @@ func updatePlayers(g *Game) {
 	g.Team2.updatePlayers(g.gameState)
 }
 
-func (g *Game) removePlayer(name string) {
-	g.Lock()
-	defer func() {
-		g.Unlock()
-		g.updatePlayers()
-	}()
-
-	// TODO: If player is leader, make a new leader?
-	if !g.Team1.removePlayer(name) {
-		g.Team2.removePlayer(name)
-	}
-	g.updatePlayers()
-}
-
 func (g *Game) startGame(who *Player) error {
 	g.Lock()
 	defer func() {
@@ -180,8 +166,7 @@ func (g *Game) startGame(who *Player) error {
 		return fail.New("The game has already started")
 	}
 
-	g.Team1.cleanPlayers()
-	g.Team2.cleanPlayers()
+	cleanPlayers(g)
 
 	if len(g.Team1.Players) < 2 || len(g.Team2.Players) < 2 {
 		// return to pregame and wait for players to join
@@ -216,6 +201,26 @@ func (g *Game) startGame(who *Player) error {
 	}, func() { g.startRound(1) })
 
 	return nil
+}
+
+func (g *Game) cleanPlayers() {
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+	cleanPlayers(g)
+}
+
+func (g *Game) IsDead() bool {
+	g.RLock()
+	defer g.RUnlock()
+	return len(g.Team1.Players) == 0 && len(g.Team2.Players) == 0
+}
+
+func cleanPlayers(g *Game) {
+	g.Team1.cleanPlayers()
+	g.Team2.cleanPlayers()
 }
 
 func (g *Game) switchTeams(who *Player) {

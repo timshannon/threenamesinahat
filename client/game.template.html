@@ -7,28 +7,28 @@
     <body>
         <div id="game" data-code="[[.Code]]" v-cloak>
             <div v-if="error" v-cloak class="game-container">
-                [[template "settings"]]
+                [[template "error" .]]
             </div>
             <div v-else-if="!game" v-cloak class="game-container">
-                [[template "join"]]
+                [[template "join" .]]
             </div>
             <div v-else-if="settings" v-cloak class="game-container">
-                [[template "settings"]]
+                [[template "settings" .]]
             </div>
             <div v-else-if="game.stage=='pregame'" v-cloak class="game-container">
-                [[template "pregame"]]
+                [[template "pregame" .]]
             </div>
             <div v-else-if="game.stage=='setup'" v-cloak class="game-container">
-                [[template "setup"]]
+                [[template "setup" .]]
             </div>
             <div v-else-if="game.stage=='playing'" v-cloak class="game-container">
-                [[template "playing"]]
+                [[template "playing" .]]
             </div>
             <div v-else-if="game.stage=='stealing'" v-cloak class="game-container">
-                [[template "stealing"]]
+                [[template "stealing" .]]
             </div>
             <div v-else-if="game.stage=='end'" v-cloak class="game-container">
-                [[template "end"]]
+                [[template "end" .]]
             </div>
 
         </div> <!-- game -->
