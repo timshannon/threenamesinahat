@@ -5,7 +5,7 @@
         <title>Game: [[.Code]] - Three Names in a Hat</title>
     </head>
     <body>
-        <div id="game" data-code="[[.Code]]">
+        <div id="game" data-code="[[.Code]]" v-cloak>
             <div v-if="error" v-cloak class="game-container">
                 [[template "settings"]]
             </div>
@@ -24,6 +24,12 @@
             <div v-else-if="game.stage=='playing'" v-cloak class="game-container">
                 [[template "playing"]]
             </div>
+            <div v-else-if="game.stage=='stealing'" v-cloak class="game-container">
+                [[template "stealing"]]
+            </div>
+            <div v-else-if="game.stage=='end'" v-cloak class="game-container">
+                [[template "end"]]
+            </div>
 
         </div> <!-- game -->
 
@@ -33,270 +39,205 @@
 </html>
 
 [[define "error"]]
-<div class="game-top">
-    <h4 class="margin-none">Game: {{code}}</h4>
-</div>
-<div class="game-middle">
-    <div class="alert alert-danger">{{error}}</div>
-    <a class="paper-btn btn-large" href="/game/[[.Code]]">
-        Try Again
-    </a>
-</div>
-<div class="game-bottom">
-    [[template "footer"]]
-</div>
+<h4 class="margin-none">Game: {{code}}</h4>
+<div class="alert alert-danger">{{error}}</div>
+<a class="paper-btn btn-large" href="/game/[[.Code]]">
+    Try Again
+</a>
+[[template "footer"]]
 [[end]]
 
 [[define "join"]]
-<div class="game-top">
-    <h4 class="margin-none">Game: {{code}}</h4>
-</div>
-<div class="game-middle">
-    <form @submit.prevent="join">
-        <div class="form-group large">
-            <label for="playerName">Enter your name:</label>
-            <input class="input-block"
-                v-model="playerName"
-                v-focus
-                type="text"
-                id="playerName">
-            <p v-if="playerNameErr" v-cloak class="text-danger">{{playerNameErr}}</p>
-        </div>
-        <button type="submit"
-            class="btn-large"
-            :disabled="loading"
-            :class="{'loading':loading}">Join</button>
-    </form>
-</div>
-<div class="game-bottom">
-    [[template "footer"]]
-</div>
+<h4 class="margin-none">Game: {{code}}</h4>
+<form @submit.prevent="join">
+    <div class="form-group large">
+        <label for="playerName">Enter your name:</label>
+        <input class="input-block"
+            v-model="playerName"
+            v-focus
+            type="text"
+            id="playerName">
+        <p v-if="playerNameErr" v-cloak class="text-danger">{{playerNameErr}}</p>
+    </div>
+    <button type="submit"
+        class="btn-large"
+        :disabled="loading"
+        :class="{'loading':loading}">Join</button>
+</form>
+[[template "footer"]]
 [[end]]
 
 [[define "settings"]]
-<div class="game-top">
-    <h3 class="margin-none">Number of names per player</h3>
-</div>
-<div class="game-middle">
-    <div class="row flex-center">
-        <div class="col-6 col"><h2>{{game.namesPerPlayer}}</h2></div>
-        <div class="col-6 col">
-            <button @click="setNamesPerPlayer(1)" class="btn-large margin-bottom">&#9650;</button>
-            <button @click="setNamesPerPlayer(-1)" class="btn-large">&#9660;</button>
-        </div>
+<h3 class="margin-none">Number of names per player</h3>
+<div class="row flex-center">
+    <div class="col-6 col"><h2>{{game.namesPerPlayer}}</h2></div>
+    <div class="col-6 col">
+        <button @click="setNamesPerPlayer(1)" class="btn-large margin-bottom">&#9650;</button>
+        <button @click="setNamesPerPlayer(-1)" class="btn-large">&#9660;</button>
     </div>
 </div>
-<div class="game-bottom">
-    <button class="btn-large margin-top" @click="settings=false">Return</button>
-</div>
+<button class="btn-large margin-top" @click="settings=false">Return</button>
 [[end]]
 
 [[define "pregame"]]
-<div class="game-top">
+<div>
     <h4 class="margin-none">Enter the code to join</h4>
     <h1 class="margin-none text-secondary"><strong>{{code}}</strong></h1>
 </div>
-<div class="game-middle">
-    <div>
-        <button class="paper-btn margin btn-secondary"
-            :disabled="loading"
-            @click="send('switchteams')">
-            Switch Teams
-        </button>
-        <button v-if="leader"
-            @click="settings=true"
-            class="btn-settings">
-            [[template "gear"]]
-        </button>
+<div class="w-100">
+    <button class="paper-btn margin btn-secondary"
+        :disabled="loading"
+        @click="send('switchteams')">
+        Switch Teams
+    </button>
+    <button v-if="leader"
+        @click="settings=true"
+        class="btn-settings">
+        [[template "gear"]]
+    </button>
 
-        <div class="score-board row flex-center border border-6 border-primary">
-            <div class="col-fill col">
-                <p class="team-title">Team 1</p>
-                <p v-for="player of game.team1.players"
-                    key="player.name"
-                    :class="{'text-secondary': player.name === playerName}"
-                    class="item">
-                    {{player.name}}
-                    <span v-if="player.name === game.leader.name">&#9733;</span>
-                </p>
-            </div>
-            <div class="col-1"></div>
-            <div class="col-fill col">
-                <p class="team-title">Team 2</p>
-                <p v-for="player of game.team2.players"
-                    key="player.name"
-                    :class="{'text-secondary': player.name === playerName}"
-                    class="item">
-                    {{player.name}}
-                    <span v-if="player.name === game.leader.name">&#9733;</span>
-                </p>
-            </div>
+    <div class="score-board row flex-center border border-6 border-primary">
+        <div class="col-fill col">
+            <p class="team-title">Team 1</p>
+            <p v-for="player of game.team1.players"
+                key="player.name"
+                :class="{'text-secondary': player.name === playerName}"
+                class="item">
+                {{player.name}}
+                <span v-if="player.name === game.leader.name">&#9733;</span>
+            </p>
         </div>
-    </div>
-</div>
-<div class="game-bottom">
-
-    <div v-if="canStart">
-        <button v-if="leader"
-            @click="startGame"
-            :disabled="loading"
-            :class="{'loading':loading}"
-            class="btn-large btn-success margin-none">
-            Start the Game!
-        </button>
-        <div v-else class="alert alert-primary">
-            Waiting for the game to start
-        </div>
-    </div>
-    <div v-else class="alert alert-primary">
-        Waiting until each team has at least 2 players
-    </div>
-</div>
-[[end]]
-
-[[define "setup"]]
-<div class="game-top">
-    <div v-if="game.timer.left> 0" v-cloak class="progress margin-top margin-bottom">
-        <div class="bar" :class="timerStyle" :style="{width: timerPercent + '%'}"></div>
-    </div>
-</div>
-<div class="game-middle">
-    <div>
-        <div v-if="namesLeft >= 1">
-            <h3 v-if="namesLeft === game.namesPerPlayer">Enter {{namesLeft}} names</h3>
-            <h3 v-else-if="namesLeft === 1">Enter 1 more name</h3>
-            <h3 v-else>Enter {{namesLeft}} more names</h3>
-            <form @submit.prevent="submitName">
-                <div class="form-group large">
-                    <p>Pick a name everyone in the game would recognize</p>
-                    <!-- TODO: add more hints as timer ticks -->
-                    <input class="input-block"
-                        v-model="addName"
-                        v-focus
-                        type="text"
-                        id="addName">
-                </div>
-            </form>
-        </div>
-        <div v-else class="score-board border border-6 border-primary text-left">
-            <p v-for="name of player.names" class="item margin" key="name">
-                <button class="paper-btn margin-none margin-right" @click="removeName(name)">X</button>
-                {{name}}
+        <div class="col-1"></div>
+        <div class="col-fill col">
+            <p class="team-title">Team 2</p>
+            <p v-for="player of game.team2.players"
+                key="player.name"
+                :class="{'text-secondary': player.name === playerName}"
+                class="item">
+                {{player.name}}
+                <span v-if="player.name === game.leader.name">&#9733;</span>
             </p>
         </div>
     </div>
 </div>
-<div class="game-bottom">
-    <div v-if="namesLeft >= 1">
-        <button @click="submitName" class="btn-block btn-large">Add</button>
-    </div>
+
+<div v-if="canStart">
+    <button v-if="leader"
+        @click="startGame"
+        :disabled="loading"
+        :class="{'loading':loading}"
+        class="btn-large btn-success margin-none">
+        Start the Game!
+    </button>
     <div v-else class="alert alert-primary">
-        Waiting for the other players to finish adding names
+        Waiting for the game to start
     </div>
+</div>
+<div v-else class="alert alert-primary">
+    Waiting until each team has at least 2 players
+</div>
+[[end]]
+
+[[define "setup"]]
+<div v-if="game.timer.left> 0" v-cloak class="progress margin-top margin-bottom">
+    <div class="bar" :class="timerStyle" :style="{width: timerPercent + '%'}"></div>
+</div>
+<div class="w-100">
+    <div v-if="namesLeft >= 1">
+        <h3 v-if="namesLeft === game.namesPerPlayer">Enter {{namesLeft}} names</h3>
+        <h3 v-else-if="namesLeft === 1">Enter 1 more name</h3>
+        <h3 v-else>Enter {{namesLeft}} more names</h3>
+        <form @submit.prevent="submitName">
+            <div class="form-group large">
+                <p>Pick a name everyone in the game would recognize</p>
+                <!-- TODO: add more hints as timer ticks -->
+                <input class="input-block"
+                    v-model="addName"
+                    v-focus
+                    type="text"
+                    id="addName">
+            </div>
+        </form>
+    </div>
+    <div v-else class="score-board border border-6 border-primary text-left">
+        <p v-for="name of player.names" class="item margin" key="name">
+            <button class="paper-btn margin-none margin-right" @click="removeName(name)">X</button>
+            {{name}}
+        </p>
+    </div>
+</div>
+<div v-if="namesLeft >= 1">
+    <button @click="submitName" class="btn-block btn-large">Add</button>
+</div>
+<div v-else class="alert alert-primary">
+    Waiting for the other players to finish adding names
 </div>
 [[end]]
 
 [[define "playing"]]
-<div class="game-top">
+<div>
+    <h3 class="margin-none">Round {{game.round}}</h3>
+    <!-- anchor so it can recieve focus -->
+    <p v-cloak v-if="game.round===1">Say Anything <br><small>No rhymes with / starts with / sounds like</small></p>
+    <p v-cloak v-else-if="game.round===2">Silent Clues Only</p>
+    <p v-cloak v-else-if="game.round===3">One Word Only</p>
+    <div v-if="game.timer.left> 0" v-cloak class="progress margin-top margin-bottom">
+        <div class="bar" :class="timerStyle" :style="{width: timerPercent + '%'}"></div>
+    </div>
 </div>
-<div class="game-middle">
+<div>
+    <div v-if="game.clueGiver.name === playerName">
+        <h1 class="text-secondary margin-none"><strong>{{currentName}}</strong></h1>
+    </div>
+    <div v-else>
+        <h3 class="margin-none">It is {{game.clueGiver.name}}'s turn</h3>
+    </div>
 </div>
-<div class="game-bottom">
+<div>
+    <div v-if="game.clueGiver.name === playerName">
+        <button v-if="currentName && game.timer.left" class="btn-block btn-large" @click="send('nextname')">Next Name</button>
+        <button v-else class="btn-block btn-large btn-success" @click="send('startturn')">Start</button>
+    </div>
+    <div v-else>
+        <div v-if="isGuessing && game.timer.left> 0" class="alert alert-primary">Try to guess the name!</div>
+        <div v-else-if="isGuessing" class="alert alert-primary">When the timer starts, try to guess the name.</div>
+        <div v-else class="alert alert-primary">Wait for your team's turn</div>
+    </div>
 </div>
 [[end]]
 
-[[define "old"]]
-<!-- ************** old ************** -->
-<div class="paper container text-center margin-top">
-    <div id="game" data-code="[[.Code]]">
-        <div v-else v-cloak>
-            <div v-if="game.stage=='setup'">
-            </div> <!-- setup -->
-            <div v-if="game.stage=='playing' || game.stage=='stealing'">
-                <h1 class="margin-none">Round {{game.round}}</h1>
-                <div v-if="game.timer.left> 0" v-cloak class="progress margin-top margin-bottom">
-                    <div class="bar" :class="timerStyle" :style="{width: timerPercent + '%'}"></div>
-                </div>
-                <div v-if="game.stage=='playing'">
-                    <div v-if="game.clueGiver.name === playerName">
-                        <h1 class="text-secondary"><strong>{{currentName}}</strong></h1>
-                        <button v-if="currentName && game.timer.left" class="btn-large"
-                            @click="send('nextname')">Next Name</button>
-                        <button v-else class="btn-large btn-success" @click="send('startturn')">Start</button>
-                    </div>
-                    <div v-else>
-                        <h3>It is {{game.clueGiver.name}}'s turn</h3>
-                        <p v-if="isGuessing && game.timer.left> 0">Try to guess the name!</p>
-                        <p v-else-if="isGuessing">When the timer starts, try to guess the name.</p>
-                        <p v-else>Wait for your team's turn</p>
-                    </div>
-                </div>
-                <div v-if="game.stage=='stealing'">
-                    <h3 class="margin-none">Team {{waitingTeam}} gets a chance to steal!</h3>
-                    <div v-if="game.clueGiver.name === playerName">
-                        <h1 class="text-secondary"><strong>{{currentName}}</strong></h1>
-                    </div>
-                    <div v-if="stealing">
-                        <button class="btn-large btn-success" @click="sendStealConfirm">Final Answer</button>
-                    </div>
-                    <div v-else-if="stealCheck">
-                        <h3 class="margin-none">Did <strong>Team {{waitingTeam}}</strong> get it correct?</h3>
-                        <button class="btn-large btn-success" @click="stealCheckConfirm(true)">Yes</button>
-                        <button class="btn-large btn-danger" @click="stealCheckConfirm(false)">No</button>
-                    </div>
-
-                </div>
-                <hr class="padding-top-large">
-                <div v-cloak class="instructions" v-if="game.round===1">
-                    <p>Say anything as long as it's not part of the person's name or a direct reference to
-                        their name.</p>
-                    <p class="text-danger">
-                        No "Rhymes with"
-                        <br>
-                        No "Starts with"
-                        <br>
-                        Saying any part of the name
-                    </p>
-                </div>
-                <div v-cloak class="instructions" v-if="game.round===2">
-                    <p>Act out clues</p>
-                    <p class="text-danger">
-                        No speaking
-                        <br>
-                        No making noises
-                    </p>
-                </div>
-                <div v-cloak class="instructions" v-if="game.round===3">
-                    <p>Say <strong>ONLY ONE</strong> word</p>
-                    <p class="text-danger">
-                        No acting out additional clues
-                        <br>
-                        No speaking any other words
-                        <br>
-                        No making noises
-                    </p>
-                </div>
-
-                <!-- team scoreboard -->
-                <div class="row flex-center margin-top">
-                    <div class="col-5 col border border-6 border-primary">
-                        <h2 class="margin-none">Team 1</h2>
-                        <p class="list-name">{{game.stats.team1Score}}</p>
-                    </div>
-                    <div class="col-1"></div>
-                    <div class="col-5 col border border-3 border-primary">
-                        <h2 class="margin-none">Team 2</h2>
-                        <p class="list-name">{{game.stats.team2Score}}</p>
-                    </div>
-                </div>
-
-            </div> <!-- playing -->
-            <div v-if="game.stage=='end'">
-                <h2 class="margin-none">Game Over</h2>
-                <h1 class="text-secondary"><strong>Team {{game.stats.winner}} won!</strong></h1>
-            </div>
-        </div>
-    </div><!-- game -->
+[[define "stealing"]]
+<div>
+    <h3 class="margin-none">Round {{game.round}}</h3>
+    <div v-if="game.timer.left> 0" v-cloak class="progress margin-top margin-bottom">
+        <div class="bar" :class="timerStyle" :style="{width: timerPercent + '%'}"></div>
+    </div>
+    <p>Team {{waitingTeam}} gets a chance to steal!</p>
 </div>
-[[template "footer"]]
+<div>
+    <div v-if="game.clueGiver.name === playerName">
+        <h1 class="text-secondary"><strong>{{currentName}}</strong></h1>
+        <div v-if="stealCheck">
+            <h3 class="margin-none">Did <strong>Team {{waitingTeam}}</strong> get it correct?</h3>
+        </div>
+    </div>
+</div>
+<div>
+    <div v-if="isWaiting" class="alert alert-primary">Guess the name, and steal team {{guessingTeam}}'s point</div>
+    <div v-else-if="stealCheck">
+        <button class="btn-large btn-success" @click="stealCheckConfirm(true)">Yes</button>
+        <button class="btn-large btn-danger" @click="stealCheckConfirm(false)">No</button>
+    </div>
+</div>
+[[end]]
+
+[[define "end"]]
+<h2 class="margin-none">Game Over</h2>
+<div>
+    <h1 class="text-secondary"><strong>Team {{game.stats.winner}} won!</strong></h1>
+    <!-- TODO: Game Stats -->
+</div>
+<div>
+    <button class="btn-large btn-success">Play again?</button>
+</div>
 [[end]]

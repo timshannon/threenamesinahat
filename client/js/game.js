@@ -22,7 +22,6 @@ var app = new Vue({
         error: null,
         addName: "",
         currentName: "",
-        stealing: false,
         stealCheck: false,
     },
     computed: {
@@ -99,6 +98,9 @@ var app = new Vue({
         isGuessing: function () {
             return this.team === this.guessingTeam;
         },
+        isWaiting: function () {
+            return this.team === this.waitingTeam;
+        },
     },
     methods: {
         receive: function (msg) {
@@ -112,9 +114,6 @@ var app = new Vue({
                     break;
                 case "name":
                     this.currentName = msg.data;
-                    break;
-                case "steal":
-                    this.stealing = true;
                     break;
                 case "stealcheck":
                     this.stealCheck = true;
@@ -166,12 +165,9 @@ var app = new Vue({
             }
             this.socket.send({ type: "namesperplayer", data: this.game.namesPerPlayer });
         },
-        sendStealConfirm: function () {
-            this.send("stealconfirm");
-            this.stealing = false;
-        },
         stealCheckConfirm: function (correct) {
             this.stealConfirm = false;
+            this.currentName = "";
             if (correct) {
                 this.send("stealyes");
             } else {

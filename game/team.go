@@ -38,9 +38,9 @@ func (t *Team) removePlayer(name string) bool {
 	return false
 }
 
-func (t *Team) updatePlayers() {
+func (t *Team) updatePlayers(state gameState) {
 	for i := range t.Players {
-		t.Players[i].update()
+		t.Players[i].update(state)
 	}
 }
 

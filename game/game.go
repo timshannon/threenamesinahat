@@ -49,8 +49,9 @@ type gameState struct {
 	Stage          string  `json:"stage"`
 	Round          int     `json:"round"`
 	Timer          struct {
-		Seconds int `json:"seconds"`
-		Left    int `json:"left"`
+		Seconds      int `json:"seconds"`
+		Left         int `json:"left"`
+		durationLeft time.Duration
 	} `json:"timer"`
 	ClueGiver *Player `json:"clueGiver"`
 
@@ -99,7 +100,7 @@ func (g *Game) join(name string) (*Player, error) {
 
 	if len(g.Team1.Players) <= len(g.Team2.Players) {
 		player := g.Team1.addNewPlayer(name, g)
-		if len(g.Team1.Players) == 1 {
+		if g.Leader == nil && len(g.Team1.Players) == 1 {
 			// first player in is leader
 			g.Leader = player
 		}
@@ -112,6 +113,12 @@ func (g *Game) join(name string) (*Player, error) {
 }
 
 func (g *Game) setNamesPerPlayer(who *Player, num int) error {
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+
 	if g.Stage != stagePregame {
 		return fail.New("The number of names per player cannot be set after the game has started")
 	}
@@ -128,12 +135,6 @@ func (g *Game) setNamesPerPlayer(who *Player, num int) error {
 		return fail.New("The maximum number of names is 20")
 	}
 
-	g.Lock()
-	defer func() {
-		g.Unlock()
-		g.updatePlayers()
-	}()
-
 	g.NamesPerPlayer = num
 	return nil
 }
@@ -141,11 +142,23 @@ func (g *Game) setNamesPerPlayer(who *Player, num int) error {
 func (g *Game) updatePlayers() {
 	g.RLock()
 	defer g.RUnlock()
-	g.Team1.updatePlayers()
-	g.Team2.updatePlayers()
+	g.Team1.updatePlayers(g.gameState)
+	g.Team2.updatePlayers(g.gameState)
+}
+
+// same as method, except game lock is already managed
+func updatePlayers(g *Game) {
+	g.Team1.updatePlayers(g.gameState)
+	g.Team2.updatePlayers(g.gameState)
 }
 
 func (g *Game) removePlayer(name string) {
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+
 	// TODO: If player is leader, make a new leader?
 	if !g.Team1.removePlayer(name) {
 		g.Team2.removePlayer(name)
@@ -223,6 +236,8 @@ func (g *Game) switchTeams(who *Player) {
 func (g *Game) stopTimer() {
 	g.Lock()
 	g.Timer.Left = 0
+	g.Timer.durationLeft = 0
+	updatePlayers(g)
 	g.Unlock()
 }
 
@@ -231,14 +246,20 @@ func (g *Game) startTimer(seconds int, tick func(), finish func()) {
 		g.Lock()
 		g.Timer.Seconds = seconds
 		g.Timer.Left = seconds
+		g.Timer.durationLeft = time.Duration(g.Timer.Left * int(time.Second))
+		updatePlayers(g)
 		g.Unlock()
-		g.updatePlayers()
 
-		ticker := time.NewTicker(1 * time.Second)
+		poll := 500 * time.Millisecond
+
+		ticker := time.NewTicker(poll)
 		for range ticker.C {
-			tick()
+			if tick != nil {
+				tick()
+			}
 			g.Lock()
-			g.Timer.Left--
+			g.Timer.durationLeft = g.Timer.durationLeft - poll
+			g.Timer.Left = int(g.Timer.durationLeft / time.Second)
 			if g.Timer.Left <= 0 {
 				ticker.Stop()
 				g.Unlock()
@@ -247,7 +268,9 @@ func (g *Game) startTimer(seconds int, tick func(), finish func()) {
 			g.Unlock()
 		}
 
-		finish()
+		if finish != nil {
+			finish()
+		}
 	}()
 }
 
@@ -264,7 +287,7 @@ func (g *Game) startRound(round int) {
 	g.Stage = stagePlaying
 	g.Round = round
 	g.canSteal = false
-	shuffleNames(g)
+	loadNames(g)
 	if round == 1 {
 		// reset player list
 		g.clueGiverTrack.team1 = false
@@ -275,6 +298,12 @@ func (g *Game) startRound(round int) {
 }
 
 func shuffleNames(g *Game) {
+	rand.Shuffle(len(g.nameList), func(i, j int) {
+		g.nameList[i], g.nameList[j] = g.nameList[j], g.nameList[i]
+	})
+}
+
+func loadNames(g *Game) {
 	g.nameList = nil
 
 	for _, p := range g.Team1.Players {
@@ -285,13 +314,12 @@ func shuffleNames(g *Game) {
 		g.nameList = append(g.nameList, p.names()...)
 	}
 
-	rand.Shuffle(len(g.nameList), func(i, j int) {
-		g.nameList[i], g.nameList[j] = g.nameList[j], g.nameList[i]
-	})
+	shuffleNames(g)
 }
 
 func nextPlayerTurn(g *Game) {
 	g.Stage = stagePlaying
+	shuffleNames(g)
 	g.clueGiverTrack.team1 = !g.clueGiverTrack.team1
 	if g.clueGiverTrack.team1 {
 		g.clueGiverTrack.team1Index++
@@ -317,11 +345,11 @@ func (g *Game) startTurn(p *Player) error {
 	}()
 
 	if g.Stage != stagePlaying {
-		return fail.New("Game has not yet started")
+		return nil
 	}
 
-	if g.ClueGiver.Name != p.Name {
-		return fail.New("It is not currently your turn.  Please wait")
+	if g.ClueGiver == nil || g.ClueGiver.Name != p.Name {
+		return nil
 	}
 
 	g.canSteal = true
@@ -339,6 +367,7 @@ func (g *Game) startTurn(p *Player) error {
 	})
 
 	if len(g.nameList) == 0 {
+		g.ClueGiver = nil
 		if g.Round == 3 {
 			go g.endGame() // run on a separate go routine to prevent deadlock
 			return nil
@@ -360,11 +389,11 @@ func (g *Game) nextName(p *Player) error {
 	}()
 
 	if g.Stage != stagePlaying {
-		return fail.New("Game has not yet started")
+		return nil
 	}
 
-	if g.ClueGiver.Name != p.Name {
-		return fail.New("It is not currently your turn.  Please wait")
+	if g.ClueGiver == nil || g.ClueGiver.Name != p.Name {
+		return nil
 	}
 
 	if g.Timer.Left == 0 {
@@ -378,6 +407,7 @@ func (g *Game) nextName(p *Player) error {
 		g.Stats.Team2Score++
 	}
 	if len(g.nameList) == 0 {
+		g.ClueGiver = nil
 		if g.Round == 3 {
 			go g.endGame() // run on a separate go routine to prevent deadlock
 			return nil
@@ -399,53 +429,14 @@ func steal(g *Game) {
 		return
 	}
 	g.Stage = stageStealing
-	var wg sync.WaitGroup
-	c := make(chan bool)
 
-	var players []*Player
-	if g.clueGiverTrack.team1 {
-		players = g.Team2.Players
-	} else {
-		players = g.Team1.Players
-	}
+	g.startTimer(secondsToSteal, g.updatePlayers, nil)
 
-	wg.Add(len(players))
-	for _, player := range players {
-		go func(p *Player) {
-			p.Send <- Msg{Type: "steal"}
-			<-p.chanSteal
-			wg.Done()
-		}(player)
-	}
-
-	go func() {
-		wg.Wait() // wait for responses
-		g.stopTimer()
-		c <- true
-	}()
-
-	g.startTimer(secondsToSteal, g.updatePlayers, func() {
-		g.Lock()
-		defer func() {
-			g.Unlock()
-			g.updatePlayers()
-		}()
-
-		select {
-		case <-c:
-			go func() {
-				// is the steal answer correct? send yes/no
-				g.ClueGiver.Send <- Msg{Type: "stealcheck"}
-			}()
-		default:
-			// players didn't vote in time
-			nextPlayerTurn(g)
-		}
-	})
-
+	g.ClueGiver.Send <- Msg{Type: "stealcheck"}
 }
 
 func (g *Game) stealConfirm(p *Player, correct bool) error {
+	g.stopTimer()
 	g.Lock()
 	defer func() {
 		g.Unlock()
@@ -455,8 +446,8 @@ func (g *Game) stealConfirm(p *Player, correct bool) error {
 		return fail.New("Turn is not being stolen currently")
 	}
 
-	if g.ClueGiver.Name != p.Name {
-		return fail.New("It is not currently your turn.  Please wait")
+	if g.ClueGiver == nil || g.ClueGiver.Name != p.Name {
+		return nil
 	}
 
 	if correct {
@@ -478,13 +469,6 @@ func (g *Game) stealConfirm(p *Player, correct bool) error {
 		}
 		nextPlayerTurn(g)
 		return nil
-	}
-
-	if len(g.nameList) > 1 {
-		// shuffle remaining names so next name is likely different
-		rand.Shuffle(len(g.nameList), func(i, j int) {
-			g.nameList[i], g.nameList[j] = g.nameList[j], g.nameList[i]
-		})
 	}
 
 	nextPlayerTurn(g)

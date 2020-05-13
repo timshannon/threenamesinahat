@@ -14,6 +14,13 @@ that can be found in the LICENSE file.
     left: 0;
     padding: 1rem;
     text-align: center;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    overflow: scroll;
+    
     /* papercss default border */
     border: 2px solid #41403e;
     border-bottom-left-radius: 15px 255px;
@@ -22,40 +29,10 @@ that can be found in the LICENSE file.
     border-top-right-radius: 15px 225px;
 }
 
-
-.game-top {
-    position: absolute;
-    top: 0;
-    bottom: 80%;
-    left: 0;
-    right: 0;
-    margin: 1rem;
-}
-
-.game-middle {
-    position: absolute;
-    top: 20%;
-    bottom: 20%;
-    left: 0;
-    right: 0;
+.flex-col-between {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 1rem;
-    margin-right: 1rem;
-    overflow: scroll;
-}
-
-.game-bottom {
-    position: absolute;
-    display: flex;
-    top: 80%;
-    bottom:0;
-    left: 0;
-    right: 0;
-    margin: 1rem;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .page-footer > * {
@@ -67,18 +44,6 @@ that can be found in the LICENSE file.
 .text-medium {
     font-size: 1.5rem;
 }
-
-/* .list-name {
-    font-size: 1.75rem;
-}
-.list-name .badge {
-    font-size: 0.75rem;
-    vertical-align: middle;
-}
-
-.list-name.highlight {
-    font-weight: bold;
-} */
 
 .form-group.large input {
     font-size: 2rem;
@@ -168,4 +133,14 @@ input.game-code {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
+}
+
+.w-100 {
+    width: 100%;
+}
+
+/* small change to make popover visible when clicked on mobile */
+[popover-bottom]:focus::after, [popover-left]:focus::after, [popover-right]:focus::after, [popover-top]:focus::after {
+    opacity: 1;
+    transition: opacity .2s ease-out;
 }
