@@ -101,6 +101,10 @@ var app = new Vue({
         isWaiting: function () {
             return this.team === this.waitingTeam;
         },
+        isClueGiver: function () {
+            if (!this.game || !this.game.clueGiver) { return null; }
+            return this.game.clueGiver.name === this.playerName;
+        },
     },
     methods: {
         receive: function (msg) {
@@ -173,6 +177,9 @@ var app = new Vue({
             } else {
                 this.send("stealno");
             }
+        },
+        reset: function () {
+            this.send("reset");
         },
     },
     mounted: function () {

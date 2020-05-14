@@ -24,6 +24,9 @@
             <div v-else-if="game.stage=='playing'" v-cloak class="game-container">
                 [[template "playing" .]]
             </div>
+            <div v-else-if="game.stage=='roundchange'" v-cloak class="game-container">
+                [[template "roundchange" .]]
+            </div>
             <div v-else-if="game.stage=='stealing'" v-cloak class="game-container">
                 [[template "stealing" .]]
             </div>
@@ -186,15 +189,15 @@
     </div>
 </div>
 <div>
-    <div v-if="game.clueGiver.name === playerName">
+    <div v-if="isClueGiver">
         <h1 class="text-secondary margin-none"><strong>{{currentName}}</strong></h1>
     </div>
-    <div v-else>
+    <div v-else-if="game.clueGiver">
         <h3 class="margin-none">It is {{game.clueGiver.name}}'s turn</h3>
     </div>
 </div>
 <div>
-    <div v-if="game.clueGiver.name === playerName">
+    <div v-if="isClueGiver">
         <button v-if="currentName && game.timer.left" class="btn-block btn-large" @click="send('nextname')">Next Name</button>
         <button v-else class="btn-block btn-large btn-success" @click="send('startturn')">Start</button>
     </div>
@@ -215,7 +218,7 @@
     <p>Team {{waitingTeam}} gets a chance to steal!</p>
 </div>
 <div>
-    <div v-if="game.clueGiver.name === playerName">
+    <div v-if="isClueGiver">
         <h1 class="text-secondary"><strong>{{currentName}}</strong></h1>
         <div v-if="stealCheck">
             <h3 class="margin-none">Did <strong>Team {{waitingTeam}}</strong> get it correct?</h3>
@@ -231,13 +234,65 @@
 </div>
 [[end]]
 
-[[define "end"]]
-<h2 class="margin-none">Game Over</h2>
+[[define "roundchange"]]
 <div>
-    <h1 class="text-secondary"><strong>Team {{game.stats.winner}} won!</strong></h1>
-    <!-- TODO: Game Stats -->
+    <h2 v-cloak v-if="game.round===0" class="margin-none text-secondary">The game is starting</h2>
+    <h2 v-cloak v-else-if="game.stats.team1Score> game.stats.team2Score" class="margin-none text-secondary">
+        Team 1 is winning!
+    </h2>
+    <h2 v-cloak v-else-if="game.stats.team2Score> game.stats.team1Score" class="margin-none text-secondary">
+        Team 2 is winning!
+    </h2>
+    <h2 v-cloak v-else class="margin-none text-secondary">The game is tied!</h2>
+    <div v-cloak class="progress margin-top margin-bottom">
+        <!-- 
+            made to feel like a loading bar even though it's an artifical wait to create a break between rounds 
+            110 so that there is a second where the progress bar is full before the round starts
+        -->
+        <div class="bar" :style="{width: (110 - timerPercent) + '%'}"></div>
+    </div>
+</div>
+<div class="w-100">
+    <div class="score-board row flex-center border border-6 border-primary">
+        <div class="col-fill col">
+            <p class="team-title">Team 1</p>
+            <p class="text-medium">{{game.stats.team1Score}}</p>
+        </div>
+        <div class="col-1"></div>
+        <div class="col-fill col">
+            <p class="team-title">Team 2</p>
+            <p class="text-medium">{{game.stats.team2Score}}</p>
+        </div>
+    </div>
 </div>
 <div>
-    <button class="btn-large btn-success">Play again?</button>
+    <div v-cloak class="alert alert-primary" v-if="game.round===0">
+        The first round is <strong>Say Anything</strong> <br><small>No rhymes with / starts with / sounds like</small>
+    </div>
+    <div v-cloak class="alert alert-primary" v-else-if="game.round===1">Next round is <strong>Silent Clues Only</strong></div>
+    <div v-cloak class="alert alert-primary" v-else-if="game.round===2">Next round is <strong>One Word Only</strong></div>
+</div>
+[[end]]
+
+
+[[define "end"]]
+<h2 class="margin-none">Game Over</h2>
+<div class="w-100">
+    <h1 class="text-secondary"><strong>Team {{game.stats.winner}} won!</strong></h1>
+    <!-- TODO: Game Stats -->
+    <div class="score-board row flex-center border border-6 border-primary">
+        <div class="col-fill col">
+            <p class="team-title">Team 1</p>
+            <p class="text-medium">{{game.stats.team1Score}}</p>
+        </div>
+        <div class="col-1"></div>
+        <div class="col-fill col">
+            <p class="team-title">Team 2</p>
+            <p class="text-medium">{{game.stats.team2Score}}</p>
+        </div>
+    </div>
+</div>
+<div>
+    <button v-if="leader" class="btn-large btn-success" @click="reset">Play again?</button>
 </div>
 [[end]]

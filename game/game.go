@@ -19,11 +19,12 @@ type Msg struct {
 
 // pregame -> setup -> round1 -> round2 -> round3 -> end
 const (
-	stagePregame  = "pregame" // players join
-	stageSetup    = "setup"   // players add names
-	stagePlaying  = "playing"
-	stageStealing = "stealing"
-	stageEnd      = "end"
+	stagePregame     = "pregame" // players join
+	stageSetup       = "setup"   // players add names
+	stagePlaying     = "playing"
+	stageRoundChange = "roundchange"
+	stageStealing    = "stealing"
+	stageEnd         = "end"
 )
 
 const (
@@ -198,7 +199,7 @@ func (g *Game) startGame(who *Player) error {
 			g.stopTimer() // will start the round on the subsequent tick
 		}
 		g.updatePlayers()
-	}, func() { g.startRound(1) })
+	}, func() { g.changeRound(1) })
 
 	return nil
 }
@@ -279,10 +280,20 @@ func (g *Game) startTimer(seconds int, tick func(), finish func()) {
 	}()
 }
 
+func (g *Game) changeRound(round int) {
+	g.stopTimer() // stop timer incase previous round end early
+	g.Lock()
+	defer g.Unlock()
+
+	g.Stage = stageRoundChange
+	updatePlayers(g)
+
+	g.startTimer(10, g.updatePlayers, func() {
+		g.startRound(round)
+	})
+}
+
 func (g *Game) startRound(round int) {
-	if round != 1 {
-		g.stopTimer() // stop timer incase previous round end early
-	}
 	g.Lock()
 	defer func() {
 		g.Unlock()
@@ -298,8 +309,8 @@ func (g *Game) startRound(round int) {
 		g.clueGiverTrack.team1 = false
 		g.clueGiverTrack.team1Index = -1
 		g.clueGiverTrack.team2Index = -1
-		nextPlayerTurn(g)
 	}
+	nextPlayerTurn(g)
 }
 
 func shuffleNames(g *Game) {
@@ -377,7 +388,7 @@ func (g *Game) startTurn(p *Player) error {
 			go g.endGame() // run on a separate go routine to prevent deadlock
 			return nil
 		}
-		go g.startRound(g.Round + 1) // run on a separate go routine to prevent deadlock
+		go g.changeRound(g.Round + 1) // run on a separate go routine to prevent deadlock
 
 		return nil
 	}
@@ -417,7 +428,7 @@ func (g *Game) nextName(p *Player) error {
 			go g.endGame() // run on a separate go routine to prevent deadlock
 			return nil
 		}
-		go g.startRound(g.Round + 1) // run on a separate go routine to prevent deadlock
+		go g.changeRound(g.Round + 1) // run on a separate go routine to prevent deadlock
 
 		return nil
 	}
@@ -468,7 +479,7 @@ func (g *Game) stealConfirm(p *Player, correct bool) error {
 				go g.endGame() // run on a separate go routine to prevent deadlock
 				return nil
 			}
-			go g.startRound(g.Round + 1) // run on a separate go routine to prevent deadlock
+			go g.changeRound(g.Round + 1) // run on a separate go routine to prevent deadlock
 
 			return nil
 		}
@@ -494,4 +505,35 @@ func (g *Game) endGame() {
 		g.Stats.Winner = 2
 	}
 
+}
+
+func (g *Game) reset(p *Player) error {
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+
+	if g.Stage != stageEnd {
+		return fail.New("Game has not yet ended")
+	}
+
+	if g.ClueGiver == nil || g.ClueGiver.Name != p.Name {
+		return nil
+	}
+
+	g.Stage = stagePregame
+	g.Round = 0
+	g.ClueGiver = nil
+	g.clueGiverTrack.team1 = false
+	g.clueGiverTrack.team1Index = -1
+	g.clueGiverTrack.team2Index = -1
+	g.nameList = nil
+	g.Team1.clearNames()
+	g.Team2.clearNames()
+	g.canSteal = false
+	g.Stats.Winner = 0
+	g.Stats.Team1Score = 0
+	g.Stats.Team2Score = 0
+	return nil
 }

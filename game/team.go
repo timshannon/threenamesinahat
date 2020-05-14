@@ -56,3 +56,9 @@ func (t *Team) cleanPlayers() {
 		t.removePlayer(name)
 	}
 }
+
+func (t *Team) clearNames() {
+	for _, p := range t.Players {
+		p.clearNames()
+	}
+}

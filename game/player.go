@@ -80,6 +80,8 @@ func recieve(p *Player) {
 				p.ok(p.game.stealConfirm(p, true))
 			case "stealno":
 				p.ok(p.game.stealConfirm(p, false))
+			case "reset":
+				p.ok(p.game.reset(p))
 			default:
 				p.ok(fail.New("%s is an invalid message type", m.Type))
 			}
@@ -167,6 +169,18 @@ func (p *Player) removeName(name string) error {
 			return nil
 		}
 	}
+
+	return nil
+}
+
+func (p *Player) clearNames() error {
+	p.Lock()
+	defer p.Unlock()
+	if p.game.Stage != stagePregame {
+		return fail.New("You cannot clear names at this time")
+	}
+
+	p.Names = nil
 
 	return nil
 }
