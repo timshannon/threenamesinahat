@@ -17,6 +17,7 @@ var errorPage = gzipHandler(templateHandler(emptyTemplate, "error.template.html"
 func setupRoutes() {
 	get("/css/", serveStatic("css", true))
 	get("/js/", serveStatic("js", true))
+	get("/audio/", serveStatic("audio", true))
 	get("/", gzipHandler(templateHandler(emptyTemplate, "index.template.html")))
 	get("/new", gzipHandler(func(w http.ResponseWriter, r *http.Request) {
 		g, err := game.New(ipAddress(r))

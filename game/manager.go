@@ -21,7 +21,7 @@ type gameManager struct {
 
 var manager = &gameManager{}
 
-const pollStatus = 30 * time.Second
+const pollStatus = 60 * time.Second
 
 var newGameRateDelay = &RateDelay{
 	Type:   "newGame",

@@ -125,6 +125,10 @@ var app = new Vue({
                 case "ping":
                     this.socket.send({ type: "pong" });
                     break;
+                case "playsound":
+                    let sound = new Audio("/audio/" + msg.data + ".mp3");
+                    sound.play();
+                    break;
             }
         },
         join: function () {

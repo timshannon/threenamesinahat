@@ -184,3 +184,13 @@ func (p *Player) clearNames() error {
 
 	return nil
 }
+
+func (p *Player) playSound(sound string) {
+
+	go func() {
+		p.Send <- Msg{
+			Type: "playsound",
+			Data: sound,
+		}
+	}()
+}

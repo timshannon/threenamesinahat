@@ -33,6 +33,13 @@ const (
 	secondsToSteal      = 15 // how much time the opposing team gets to steal
 )
 
+const (
+	soundTick       = "tick"
+	soundTimerAlarm = "timer-alarm"
+	soundScore      = "score"
+	soundNotify     = "notify"
+)
+
 type Game struct {
 	sync.RWMutex // manage the lock in methods, functions expect lock to be already managed
 	gameState
@@ -177,6 +184,9 @@ func (g *Game) startGame(who *Player) error {
 	g.Stage = stageSetup
 	g.startTimer(setupSecondsPerName*g.NamesPerPlayer, func() {
 		g.RLock()
+		playTimerSound(g, &g.Team1)
+		playTimerSound(g, &g.Team2)
+
 		startRound := true
 		for _, p := range g.Team1.Players {
 			if len(p.names()) < g.NamesPerPlayer {
@@ -199,7 +209,37 @@ func (g *Game) startGame(who *Player) error {
 			g.stopTimer() // will start the round on the subsequent tick
 		}
 		g.updatePlayers()
-	}, func() { g.changeRound(1) })
+	}, func() {
+		g.RLock()
+		// don't start the round if no one submitted names in time
+		startRound := false
+		for _, p := range g.Team1.Players {
+			if len(p.names()) > 0 {
+				startRound = true
+				break
+			}
+		}
+		if !startRound {
+			for _, p := range g.Team2.Players {
+				if len(p.names()) > 0 {
+					startRound = true
+					break
+				}
+			}
+		}
+		g.RUnlock()
+		if !startRound {
+			g.Lock()
+			g.Stage = stagePregame
+			g.Unlock()
+			g.updatePlayers()
+			return
+		}
+		g.changeRound(1)
+	}, func() {
+		g.Team1.playSound(soundTimerAlarm)
+		g.Team2.playSound(soundTimerAlarm)
+	})
 
 	return nil
 }
@@ -247,7 +287,22 @@ func (g *Game) stopTimer() {
 	g.Unlock()
 }
 
-func (g *Game) startTimer(seconds int, tick func(), finish func()) {
+func playTimerSound(g *Game, team *Team) {
+	ratio := float64(g.Timer.Left) / float64(g.Timer.Seconds)
+	if ratio <= .25 {
+		// tick every half second
+		team.playSound(soundTick)
+		return
+	}
+	if ratio <= .5 {
+		if g.Timer.Left == int(g.Timer.durationLeft.Round(time.Second)/time.Second) {
+			// tick every second
+			team.playSound(soundTick)
+		}
+	}
+}
+
+func (g *Game) startTimer(seconds int, tick func(), finish func(), timeout func()) {
 	go func() {
 		g.Lock()
 		g.Timer.Seconds = seconds
@@ -260,15 +315,25 @@ func (g *Game) startTimer(seconds int, tick func(), finish func()) {
 
 		ticker := time.NewTicker(poll)
 		for range ticker.C {
+
 			if tick != nil {
 				tick()
 			}
 			g.Lock()
+			if g.Timer.Left <= 0 {
+				// timer was stopped early
+				ticker.Stop()
+				g.Unlock()
+				break
+			}
 			g.Timer.durationLeft = g.Timer.durationLeft - poll
 			g.Timer.Left = int(g.Timer.durationLeft / time.Second)
 			if g.Timer.Left <= 0 {
 				ticker.Stop()
 				g.Unlock()
+				if timeout != nil {
+					timeout()
+				}
 				break
 			}
 			g.Unlock()
@@ -290,7 +355,7 @@ func (g *Game) changeRound(round int) {
 
 	g.startTimer(10, g.updatePlayers, func() {
 		g.startRound(round)
-	})
+	}, nil)
 }
 
 func (g *Game) startRound(round int) {
@@ -334,6 +399,10 @@ func loadNames(g *Game) {
 }
 
 func nextPlayerTurn(g *Game) {
+	defer func() {
+		g.ClueGiver.playSound(soundNotify)
+	}()
+
 	g.Stage = stagePlaying
 	shuffleNames(g)
 	g.clueGiverTrack.team1 = !g.clueGiverTrack.team1
@@ -369,7 +438,16 @@ func (g *Game) startTurn(p *Player) error {
 	}
 
 	g.canSteal = true
-	g.startTimer(secondsPerTurn, g.updatePlayers, func() {
+	team := &g.Team1
+	if !g.clueGiverTrack.team1 {
+		team = &g.Team2
+	}
+	g.startTimer(secondsPerTurn, func() {
+		g.RLock()
+		playTimerSound(g, team)
+		g.RUnlock()
+		g.updatePlayers()
+	}, func() {
 		g.Lock()
 		defer func() {
 			g.Unlock()
@@ -380,6 +458,8 @@ func (g *Game) startTurn(p *Player) error {
 		} else {
 			nextPlayerTurn(g)
 		}
+	}, func() {
+		team.playSound(soundTimerAlarm)
 	})
 
 	if len(g.nameList) == 0 {
@@ -419,9 +499,12 @@ func (g *Game) nextName(p *Player) error {
 	g.nameList = g.nameList[1:]
 	if g.clueGiverTrack.team1 {
 		g.Stats.Team1Score++
+		g.Team1.playSound(soundScore)
 	} else {
 		g.Stats.Team2Score++
+		g.Team2.playSound(soundScore)
 	}
+
 	if len(g.nameList) == 0 {
 		g.ClueGiver = nil
 		if g.Round == 3 {
@@ -445,8 +528,19 @@ func steal(g *Game) {
 		return
 	}
 	g.Stage = stageStealing
+	team := &g.Team1
+	if g.clueGiverTrack.team1 {
+		team = &g.Team2
+	}
 
-	g.startTimer(secondsToSteal, g.updatePlayers, nil)
+	g.startTimer(secondsToSteal, func() {
+		g.RLock()
+		playTimerSound(g, team)
+		g.RUnlock()
+		g.updatePlayers()
+	}, nil, func() {
+		team.playSound(soundTimerAlarm)
+	})
 
 	g.ClueGiver.Send <- Msg{Type: "stealcheck"}
 }
@@ -470,8 +564,10 @@ func (g *Game) stealConfirm(p *Player, correct bool) error {
 		g.nameList = g.nameList[1:]
 		if g.clueGiverTrack.team1 {
 			g.Stats.Team2Score++
+			g.Team2.playSound(soundScore)
 		} else {
 			g.Stats.Team1Score++
+			g.Team1.playSound(soundScore)
 		}
 
 		if len(g.nameList) == 0 {

@@ -62,3 +62,9 @@ func (t *Team) clearNames() {
 		p.clearNames()
 	}
 }
+
+func (t *Team) playSound(sound string) {
+	for _, p := range t.Players {
+		p.playSound(sound)
+	}
+}
