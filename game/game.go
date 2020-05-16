@@ -60,6 +60,7 @@ type gameState struct {
 		Seconds      int `json:"seconds"`
 		Left         int `json:"left"`
 		durationLeft time.Duration
+		stop         chan bool
 	} `json:"timer"`
 	ClueGiver *Player `json:"clueGiver"`
 
@@ -281,10 +282,17 @@ func (g *Game) switchTeams(who *Player) {
 
 func (g *Game) stopTimer() {
 	g.Lock()
-	g.Timer.Left = 0
-	g.Timer.durationLeft = 0
-	updatePlayers(g)
+	stopTimer(g)
 	g.Unlock()
+}
+
+func stopTimer(g *Game) {
+	if g.Timer.stop != nil {
+		g.Timer.stop <- true
+		g.Timer.Left = 0
+		g.Timer.durationLeft = 0
+		g.Timer.stop = nil
+	}
 }
 
 func playTimerSound(g *Game, team *Team) {
@@ -305,43 +313,22 @@ func playTimerSound(g *Game, team *Team) {
 func (g *Game) startTimer(seconds int, tick func(), finish func(), timeout func()) {
 	go func() {
 		g.Lock()
+		defer func() {
+			g.Unlock()
+			g.updatePlayers()
+		}()
+
 		g.Timer.Seconds = seconds
 		g.Timer.Left = seconds
 		g.Timer.durationLeft = time.Duration(g.Timer.Left * int(time.Second))
-		updatePlayers(g)
-		g.Unlock()
 
-		poll := 500 * time.Millisecond
-
-		ticker := time.NewTicker(poll)
-		for range ticker.C {
-
-			if tick != nil {
-				tick()
-			}
+		g.Timer.stop = startTimer(g.Timer.durationLeft, func(passed time.Duration) {
 			g.Lock()
-			if g.Timer.Left <= 0 {
-				// timer was stopped early
-				ticker.Stop()
-				g.Unlock()
-				break
-			}
-			g.Timer.durationLeft = g.Timer.durationLeft - poll
+			g.Timer.durationLeft -= passed
 			g.Timer.Left = int(g.Timer.durationLeft / time.Second)
-			if g.Timer.Left <= 0 {
-				ticker.Stop()
-				g.Unlock()
-				if timeout != nil {
-					timeout()
-				}
-				break
-			}
 			g.Unlock()
-		}
-
-		if finish != nil {
-			finish()
-		}
+			tick()
+		}, finish, timeout)
 	}()
 }
 
@@ -463,13 +450,6 @@ func (g *Game) startTurn(p *Player) error {
 	})
 
 	if len(g.nameList) == 0 {
-		g.ClueGiver = nil
-		if g.Round == 3 {
-			go g.endGame() // run on a separate go routine to prevent deadlock
-			return nil
-		}
-		go g.changeRound(g.Round + 1) // run on a separate go routine to prevent deadlock
-
 		return nil
 	}
 	p.Send <- Msg{Type: "name", Data: p.game.nameList[0]}
@@ -614,8 +594,8 @@ func (g *Game) reset(p *Player) error {
 		return fail.New("Game has not yet ended")
 	}
 
-	if g.ClueGiver == nil || g.ClueGiver.Name != p.Name {
-		return nil
+	if !p.isLeader() {
+		return fail.New("Only the game leader can reset the game")
 	}
 
 	g.Stage = stagePregame

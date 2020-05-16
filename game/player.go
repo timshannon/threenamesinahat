@@ -13,7 +13,7 @@ import (
 	"github.com/timshannon/threenamesinahat/fail"
 )
 
-const timeout = 1 * time.Second
+const clientTimeout = 1 * time.Second
 
 // Player keeps track of a given player as well as is the communication channel
 type Player struct {
@@ -109,17 +109,19 @@ func (p *Player) ok(err error) bool {
 }
 
 func (p *Player) update(state gameState) {
-	p.Send <- Msg{
-		Type: "state",
-		Data: state,
-	}
+	go func() {
+		p.Send <- Msg{
+			Type: "state",
+			Data: state,
+		}
+	}()
 }
 
 func (p *Player) ping() bool {
 	go func() { p.Send <- Msg{Type: "ping"} }()
 
 	select {
-	case <-time.After(timeout):
+	case <-time.After(clientTimeout):
 		return false
 	case <-p.chanPing:
 		return true

@@ -226,19 +226,14 @@ function GameSocket(onmessage) {
                 };
             });
         },
-        async send(data) {
+        send(data) {
             if (!this.connection || this.connection.readyState !== WebSocket.OPEN) {
-                await this.connect();
+                setTimeout(() => {
+                    this.send(data);
+                }, retryPoll);
+                return;
             }
-
-            let msg;
-            if (typeof data === "string" || data instanceof ArrayBuffer || data instanceof Blob) {
-                msg = data;
-            } else {
-                msg = JSON.stringify(data);
-            }
-
-            this.connection.send(msg);
+            this.connection.send(JSON.stringify(data));
         },
         close(code, reason) {
             if (this.connection) {
@@ -247,13 +242,12 @@ function GameSocket(onmessage) {
             }
         },
         retry() {
-            setTimeout(async () => {
-                try {
-                    await this.connect();
-                } catch (err) {
-                    console.log("Web Socket Errored, retrying: ", err);
-                    this.retry();
-                }
+            setTimeout(() => {
+                this.connect()
+                    .catch((err) => {
+                        console.log("Web Socket Errored, retrying: ", err);
+                        this.retry();
+                    });
             }, this.retryPoll);
         },
     };
