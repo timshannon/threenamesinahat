@@ -583,7 +583,7 @@ func (g *Game) endGame() {
 
 }
 
-func (g *Game) reset(p *Player) error {
+func (g *Game) reset(p *Player, reason string) error {
 	g.Lock()
 	defer func() {
 		g.Unlock()

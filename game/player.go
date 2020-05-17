@@ -81,7 +81,7 @@ func recieve(p *Player) {
 			case "stealno":
 				p.ok(p.game.stealConfirm(p, false))
 			case "reset":
-				p.ok(p.game.reset(p))
+				p.ok(p.game.reset(p, ""))
 			default:
 				p.ok(fail.New("%s is an invalid message type", m.Type))
 			}
