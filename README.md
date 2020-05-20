@@ -6,11 +6,11 @@ of an online game where players join and play on their own phones / tablets / co
 
 ## Motivation
 This simple party game is one my friends and family always enjoy playing.  However the recent Covid-19 world-wide
-pandemic has made playing party games a little difficult. I felt it was the perfect quarentine project to turn this
+pandemic has made playing party games a little difficult. I felt it was the perfect quarantine project to turn this
 simple party game into one that could be played remotely while we all are social distancing.
 
 Around the world right now, musicians are playing from balconies, writers are furiously writing blog posts and tweets,
-and artists and sharing their works over instagram. I wanted to make someting small and fun to mark this historic
+and artists and sharing their works over instagram. I wanted to make something small and fun to mark this strange and historic
 time, and I really have only one skill to offer.
 
 ## Rules
@@ -31,33 +31,11 @@ starts with all the names put back in.
 not part of the person's name or a direct reference to their name. For example they can't do things like "rhymes with"
 or "starts with X" or "ends with X".
 
-**Round 2**: Same as previous rounds, except no words, only silent acting out clues.
+**Round 2**: Same as previous rounds, except no words, only acting out silent clues.
 
 **Round 3**: Same as round one except this time you only get one word.
 
 After three rounds, the team with the most points win.
-
-
-## Overview of play
-
-1. One player will start a game. 
-    * The game will have a randomly generated code
-2. Other players can join the game using the game code
-3. The first two players in get to choose team names and team colors
-    * Defaults to Team Blue and Team Red
-4. More players can continue to join, and pick which team they want to join
-5. Game creator (1st player in) gets to choose when to start the game
-6. When the game starts, all players will have 1-2 minutes to write down 3 names
-7. A team is randomly selected to start, and player order is randomly chosen at this time
-8. First player is given a start button
-9. Player presses start and starts the timer and is given the first randomly selected name
-10. Player presses next when the name is guessed, and they get a point for each time they press next before the
-timer runs out
-11. Point totals accumlate on everyone's screen as game progresses
-12. When timer runs out, next player on next team gets a start button
-13. Play continues until all names are chosen and all rounds are played.
-14. Game summary and winning team is shown as well as stats such as who's turn got the most guesses
-15. Option to replay with same team start a new game
 
 
 ## Goals
@@ -68,3 +46,5 @@ timer runs out
 * No configuration
 * One command line flag *port*
 * Built *mostly* with the core Go libraries
+* No NPM or transpiling
+* No IE11 support

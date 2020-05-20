@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/timshannon/threenamesinahat/game"
-	"golang.org/x/net/websocket"
 )
 
 var notFound = gzipHandler(templateHandler(emptyTemplate, "notfound.template.html"))
@@ -29,7 +28,7 @@ func setupRoutes() {
 		http.Redirect(w, r, "/game/"+g.Code, http.StatusTemporaryRedirect)
 	}))
 	get("/game/", gzipHandler(templateHandler(gameTemplate, "game.template.html")))
-	http.Handle("/game", websocket.Handler(gameSocket))
+	http.HandleFunc("/game", gameSocket)
 	get("/join", gzipHandler(templateHandler(emptyTemplate, "join.template.html")))
 }
 

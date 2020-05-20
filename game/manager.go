@@ -48,6 +48,7 @@ func New(ipAddress string) (*Game, error) {
 			NamesPerPlayer: 3,
 			Stage:          stagePregame,
 		},
+		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	time.AfterFunc(pollStatus, func() { cleanGame(g) })

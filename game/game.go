@@ -38,11 +38,15 @@ const (
 	soundTimerAlarm = "timer-alarm"
 	soundScore      = "score"
 	soundNotify     = "notify"
+	soundRoundEnd   = "round-end"
+	soundGameWin    = "game-win"
+	soundGameLose   = "game-lose"
 )
 
 type Game struct {
 	sync.RWMutex // manage the lock in methods, functions expect lock to be already managed
 	gameState
+	rand *rand.Rand
 }
 
 // gameState is copied out for JSON encoding
@@ -339,6 +343,8 @@ func (g *Game) changeRound(round int) {
 
 	g.Stage = stageRoundChange
 	updatePlayers(g)
+	g.Team1.playSound(soundRoundEnd)
+	g.Team2.playSound(soundRoundEnd)
 
 	g.startTimer(10, g.updatePlayers, func() {
 		g.startRound(round)
@@ -366,7 +372,8 @@ func (g *Game) startRound(round int) {
 }
 
 func shuffleNames(g *Game) {
-	rand.Shuffle(len(g.nameList), func(i, j int) {
+	g.rand.Seed(time.Now().UnixNano())
+	g.rand.Shuffle(len(g.nameList), func(i, j int) {
 		g.nameList[i], g.nameList[j] = g.nameList[j], g.nameList[i]
 	})
 }
@@ -519,7 +526,13 @@ func steal(g *Game) {
 		g.RUnlock()
 		g.updatePlayers()
 	}, nil, func() {
+		g.Lock()
+		defer func() {
+			g.Unlock()
+			g.updatePlayers()
+		}()
 		team.playSound(soundTimerAlarm)
+		nextPlayerTurn(g)
 	})
 
 	g.ClueGiver.Send <- Msg{Type: "stealcheck"}
@@ -577,8 +590,12 @@ func (g *Game) endGame() {
 	g.Stage = stageEnd
 	if g.Stats.Team1Score > g.Stats.Team2Score {
 		g.Stats.Winner = 1
+		g.Team1.playSound(soundGameWin)
+		g.Team2.playSound(soundGameLose)
 	} else if g.Stats.Team2Score > g.Stats.Team1Score {
 		g.Stats.Winner = 2
+		g.Team2.playSound(soundGameWin)
+		g.Team1.playSound(soundGameLose)
 	}
 
 }

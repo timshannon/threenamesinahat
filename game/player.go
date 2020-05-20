@@ -175,20 +175,13 @@ func (p *Player) removeName(name string) error {
 	return nil
 }
 
-func (p *Player) clearNames() error {
+func (p *Player) clearNames() {
 	p.Lock()
 	defer p.Unlock()
-	if p.game.Stage != stagePregame {
-		return fail.New("You cannot clear names at this time")
-	}
-
 	p.Names = nil
-
-	return nil
 }
 
 func (p *Player) playSound(sound string) {
-
 	go func() {
 		p.Send <- Msg{
 			Type: "playsound",

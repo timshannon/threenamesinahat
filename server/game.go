@@ -9,9 +9,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/websocket"
 	"github.com/timshannon/threenamesinahat/game"
-	"golang.org/x/net/websocket"
 )
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  512,
+	WriteBufferSize: 512,
+}
 
 var gameNotFound = gzipHandler(templateHandler(func(w *templateWriter, r *http.Request) {
 	w.execute(struct {
@@ -38,11 +43,17 @@ func gameTemplate(w *templateWriter, r *http.Request) {
 	w.execute(g)
 }
 
-func gameSocket(ws *websocket.Conn) {
-	m := &game.Msg{}
-	err := websocket.JSON.Receive(ws, m)
+func gameSocket(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		websocket.JSON.Send(ws, &game.Msg{Type: "error", Data: err.Error()})
+		log.Println(err)
+		return
+	}
+
+	m := &game.Msg{}
+	err = websocket.ReadJSON(ws, m)
+	if err != nil {
+		websocket.WriteJSON(ws, &game.Msg{Type: "error", Data: err.Error()})
 	}
 
 	if strings.ToLower(m.Type) != "join" {
@@ -52,7 +63,7 @@ func gameSocket(ws *websocket.Conn) {
 
 	data, ok := m.Data.(map[string]interface{})
 	if !ok {
-		websocket.JSON.Send(ws, &game.Msg{Type: "error", Data: "Invalid websocket data"})
+		websocket.WriteJSON(ws, &game.Msg{Type: "error", Data: "Invalid websocket data"})
 		ws.Close()
 		return
 	}
@@ -63,14 +74,14 @@ func gameSocket(ws *websocket.Conn) {
 	player, err := game.Join(gameCode, playerName)
 
 	if err != nil {
-		websocket.JSON.Send(ws, &game.Msg{Type: "error", Data: err.Error()})
+		websocket.WriteJSON(ws, &game.Msg{Type: "error", Data: err.Error()})
 		ws.Close()
 		return
 	}
 
 	go func() {
 		for msg := range player.Send {
-			err := websocket.JSON.Send(ws, msg)
+			err := websocket.WriteJSON(ws, msg)
 			if err != nil {
 				log.Printf("Error in game %s sending to player %s: %s", gameCode, playerName, err)
 				ws.Close()
@@ -80,7 +91,7 @@ func gameSocket(ws *websocket.Conn) {
 	}()
 
 	for {
-		err = websocket.JSON.Receive(ws, m)
+		err = websocket.ReadJSON(ws, m)
 		if err != nil {
 			log.Printf("Error recieving on web socket: %s", err)
 			ws.Close()
