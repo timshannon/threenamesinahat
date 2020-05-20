@@ -198,7 +198,7 @@ function GameSocket(onmessage) {
     const retryPoll = 3000;
     let url = window.location.origin.toString().replace("http://", "ws://").replace("https://", "wss://") + "/game";
     return {
-        connect() {
+        connect: () => {
             return new Promise((resolve, reject) => {
                 this.connection = new WebSocket(url);
                 this.connection.onopen = () => {
@@ -226,7 +226,7 @@ function GameSocket(onmessage) {
                 };
             });
         },
-        send(data) {
+        send: (data) => {
             if (!this.connection || this.connection.readyState !== WebSocket.OPEN) {
                 setTimeout(() => {
                     this.send(data);
@@ -235,13 +235,13 @@ function GameSocket(onmessage) {
             }
             this.connection.send(JSON.stringify(data));
         },
-        close(code, reason) {
+        close: (code, reason) => {
             if (this.connection) {
                 this.manualClose = true;
                 this.connection.close(code, reason);
             }
         },
-        retry() {
+        retry: () => {
             setTimeout(() => {
                 this.connect()
                     .catch((err) => {
