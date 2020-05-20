@@ -16,8 +16,9 @@ import (
 	"github.com/timshannon/threenamesinahat/files"
 )
 
+// FIXME: Safari and Midori don't support 'self' as a source for connect-src and breaks websockets
 // requirements for google fonts and vuejs
-const defaultCSP = "default-src 'self';font-src fonts.gstatic.com;style-src 'self' fonts.googleapis.com; script-src 'self' 'unsafe-eval'"
+// const defaultCSP = "default-src 'self';font-src fonts.gstatic.com;style-src 'self' fonts.googleapis.com; script-src 'self' 'unsafe-eval'; connect-src 'self';"
 
 type TemplateHandlerFunc func(*templateWriter, *http.Request)
 
@@ -26,7 +27,7 @@ func templateHandler(handler TemplateHandlerFunc, templates ...string) http.Hand
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Content-Security-Policy", defaultCSP)
+		// w.Header().Set("Content-Security-Policy", defaultCSP) //FIME: CSP and websockets on sofari
 
 		handler(&templateWriter{
 			ResponseWriter: w,

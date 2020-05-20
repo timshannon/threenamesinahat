@@ -19,7 +19,7 @@ that can be found in the LICENSE file.
     flex-direction: column;
     justify-content: space-between;
 
-    overflow: scroll;
+    overflow: auto;
     
     /* papercss default border */
     border: 2px solid #41403e;
