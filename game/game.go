@@ -267,6 +267,16 @@ func (g *Game) IsDead() bool {
 func cleanPlayers(g *Game) {
 	g.Team1.cleanPlayers()
 	g.Team2.cleanPlayers()
+
+	if len(g.Team1.Players) < 2 || len(g.Team2.Players) < 2 {
+		reset(g, "Not enough players to continue")
+		updatePlayers(g)
+		return
+	}
+
+	if !g.Leader.ping() {
+		g.Leader = g.Team1.Players[0]
+	}
 }
 
 func (g *Game) switchTeams(who *Player) {
@@ -396,6 +406,12 @@ func nextPlayerTurn(g *Game) {
 	defer func() {
 		g.ClueGiver.playSound(soundNotify)
 	}()
+
+	cleanPlayers(g)
+	if g.Stage == stagePregame {
+		// game got reset
+		return
+	}
 
 	g.Stage = stagePlaying
 	shuffleNames(g)
@@ -614,7 +630,11 @@ func (g *Game) reset(p *Player, reason string) error {
 	if !p.isLeader() {
 		return fail.New("Only the game leader can reset the game")
 	}
+	return reset(g, reason)
+}
 
+func reset(g *Game, reason string) error {
+	stopTimer(g)
 	g.Stage = stagePregame
 	g.Round = 0
 	g.ClueGiver = nil
@@ -628,5 +648,6 @@ func (g *Game) reset(p *Player, reason string) error {
 	g.Stats.Winner = 0
 	g.Stats.Team1Score = 0
 	g.Stats.Team2Score = 0
+	// TODO: send reset reason notification
 	return nil
 }

@@ -3,6 +3,24 @@
 The party game *Three Names in a Hat* also known as *Celebrity* in some circles played in the format
 of an online game where players join and play on their own phones / tablets / computers.
 
+## Quickstart
+
+You can play it at: [https://www.threenamesinahat.com](https://www.threenamesinahat.com)
+
+Or grab the code and run it yourself.
+
+```
+git clone git@github.com:timshannon/threenamesinahat.git
+go build
+./threenamesinahat
+```
+
+Or with docker
+
+```
+docker build --tag threenamesinahat https://github.com/timshannon/threenamesinahat.git#master
+docker run --publish 8080:8080 threenamesinahat
+```
 
 ## Motivation
 This simple party game is one my friends and family always enjoy playing.  However the recent Covid-19 world-wide
@@ -10,8 +28,8 @@ pandemic has made playing party games a little difficult. I felt it was the perf
 simple party game into one that could be played remotely while we all are social distancing.
 
 Around the world right now, musicians are playing from balconies, writers are furiously writing blog posts and tweets,
-and artists and sharing their works over instagram. I wanted to make something small and fun to mark this strange and historic
-time, and I really have only one skill to offer.
+and artists and sharing their works over instagram. I wanted to make something small and fun to mark this 
+*strange and historic* time, and I really have only one skill to offer.
 
 ## Rules
 
