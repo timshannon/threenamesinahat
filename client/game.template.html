@@ -6,34 +6,35 @@
     </head>
     <body>
         <div id="game" data-code="[[.Code]]" v-cloak>
-            <div v-if="error" v-cloak class="game-container">
-                [[template "error" .]]
-            </div>
-            <div v-else-if="!game" v-cloak class="game-container">
-                [[template "join" .]]
-            </div>
-            <div v-else-if="settings" v-cloak class="game-container">
-                [[template "settings" .]]
-            </div>
-            <div v-else-if="game.stage=='pregame'" v-cloak class="game-container">
-                [[template "pregame" .]]
-            </div>
-            <div v-else-if="game.stage=='setup'" v-cloak class="game-container">
-                [[template "setup" .]]
-            </div>
-            <div v-else-if="game.stage=='playing'" v-cloak class="game-container">
-                [[template "playing" .]]
-            </div>
-            <div v-else-if="game.stage=='roundchange'" v-cloak class="game-container">
-                [[template "roundchange" .]]
-            </div>
-            <div v-else-if="game.stage=='stealing'" v-cloak class="game-container">
-                [[template "stealing" .]]
-            </div>
-            <div v-else-if="game.stage=='end'" v-cloak class="game-container">
-                [[template "end" .]]
-            </div>
-
+            <transition name="stage-change" mode="out-in">
+                <div v-if="error" v-cloak class="game-container" key="error">
+                    [[template "error" .]]
+                </div>
+                <div v-else-if="!game" v-cloak class="game-container" key="join">
+                    [[template "join" .]]
+                </div>
+                <div v-else-if="settings" v-cloak class="game-container" key="settings">
+                    [[template "settings" .]]
+                </div>
+                <div v-else-if="game.stage=='pregame'" v-cloak class="game-container" :key="game.stage">
+                    [[template "pregame" .]]
+                </div>
+                <div v-else-if="game.stage=='setup'" v-cloak class="game-container" :key="game.stage">
+                    [[template "setup" .]]
+                </div>
+                <div v-else-if="game.stage=='playing'" v-cloak class="game-container" :key="game.stage">
+                    [[template "playing" .]]
+                </div>
+                <div v-else-if="game.stage=='roundchange'" v-cloak class="game-container" :key="game.stage">
+                    [[template "roundchange" .]]
+                </div>
+                <div v-else-if="game.stage=='stealing'" v-cloak class="game-container" :key="game.stage">
+                    [[template "stealing" .]]
+                </div>
+                <div v-else-if="game.stage=='end'" v-cloak class="game-container" :key="game.stage">
+                    [[template "end" .]]
+                </div>
+            </transition>
         </div> <!-- game -->
 
         <script src="/js/es6-promise.auto.min.js"></script>

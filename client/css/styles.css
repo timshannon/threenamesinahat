@@ -142,8 +142,16 @@ input.game-code {
     width: 100%;
 }
 
-/* small change to make popover visible when clicked on mobile */
-[popover-bottom]:focus::after, [popover-left]:focus::after, [popover-right]:focus::after, [popover-top]:focus::after {
-    opacity: 1;
-    transition: opacity .2s ease-out;
+
+.stage-change-enter-active, .stage-change-leave-active {
+    transition: all .2s ease;
+    transform-style: preserve-3d;
+}
+
+.stage-change-enter  {
+    transform: translateX(100%);
+}
+.stage-change-leave-to {
+    transform: translateX(-100%);
+    opacity: 0;
 }
