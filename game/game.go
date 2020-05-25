@@ -342,7 +342,12 @@ func (g *Game) startTimer(seconds int, tick func(), finish func(), timeout func(
 			g.Timer.Left = int(g.Timer.durationLeft / time.Second)
 			g.Unlock()
 			tick()
-		}, finish, timeout)
+		}, func() {
+			g.Lock()
+			g.Timer.stop = nil
+			g.Unlock()
+			finish()
+		}, timeout)
 	}()
 }
 

@@ -110,6 +110,9 @@ func (p *Player) ok(err error) bool {
 
 func (p *Player) update(state gameState) {
 	go func() {
+		if p == nil {
+			return
+		}
 		p.Send <- Msg{
 			Type: "state",
 			Data: state,
@@ -183,6 +186,10 @@ func (p *Player) clearNames() {
 
 func (p *Player) playSound(sound string) {
 	go func() {
+		if p == nil {
+			return
+		}
+
 		p.Send <- Msg{
 			Type: "playsound",
 			Data: sound,
@@ -192,6 +199,9 @@ func (p *Player) playSound(sound string) {
 
 func (p *Player) sendNotification(notification string) {
 	go func() {
+		if p == nil {
+			return
+		}
 		p.Send <- Msg{
 			Type: "notification",
 			Data: notification,
