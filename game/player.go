@@ -189,3 +189,12 @@ func (p *Player) playSound(sound string) {
 		}
 	}()
 }
+
+func (p *Player) sendNotification(notification string) {
+	go func() {
+		p.Send <- Msg{
+			Type: "notification",
+			Data: notification,
+		}
+	}()
+}

@@ -155,3 +155,29 @@ input.game-code {
     transform: translateX(-100%);
     opacity: 0;
 }
+
+
+.notification {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    margin: auto;
+    width: 100%;
+    padding: 1rem;
+    z-index: 100;
+    max-width: 768px;
+}
+
+.notification-enter-active, .stage-change-leave-active {
+    transition: all .2s ease;
+    transform-style: preserve-3d;
+}
+
+.notification-enter  {
+    transform: translateY(100%);
+}
+.notification-leave-to {
+    transform: translateY(-100%);
+    opacity: 0;
+}

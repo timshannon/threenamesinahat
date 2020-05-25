@@ -351,6 +351,12 @@ func (g *Game) changeRound(round int) {
 	g.Lock()
 	defer g.Unlock()
 
+	cleanPlayers(g)
+	if g.Stage == stagePregame {
+		// game got reset
+		return
+	}
+
 	g.Stage = stageRoundChange
 	updatePlayers(g)
 	g.Team1.playSound(soundRoundEnd)
@@ -630,10 +636,11 @@ func (g *Game) reset(p *Player, reason string) error {
 	if !p.isLeader() {
 		return fail.New("Only the game leader can reset the game")
 	}
-	return reset(g, reason)
+	reset(g, reason)
+	return nil
 }
 
-func reset(g *Game, reason string) error {
+func reset(g *Game, reason string) {
 	stopTimer(g)
 	g.Stage = stagePregame
 	g.Round = 0
@@ -648,6 +655,8 @@ func reset(g *Game, reason string) error {
 	g.Stats.Winner = 0
 	g.Stats.Team1Score = 0
 	g.Stats.Team2Score = 0
-	// TODO: send reset reason notification
-	return nil
+	if reason != "" {
+		g.Team1.sendNotification(reason)
+		g.Team2.sendNotification(reason)
+	}
 }

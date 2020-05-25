@@ -6,6 +6,14 @@
     </head>
     <body>
         <div id="game" data-code="[[.Code]]" v-cloak>
+            <transition name="notification" mode="out-in">
+                <div v-if="notification" class="notification">
+                    <div class="alert alert-secondary dismissible">
+                        {{notification}}
+                        <label @click="notification=''" class="btn-close">X</label>
+                    </div>
+                </div>
+            </transition>
             <transition name="stage-change" mode="out-in">
                 <div v-if="error" v-cloak class="game-container" key="error">
                     [[template "error" .]]

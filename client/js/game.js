@@ -23,6 +23,7 @@ var app = new Vue({
         addName: "",
         currentName: "",
         stealCheck: false,
+        notification: "",
     },
     computed: {
         leader: function () {
@@ -128,6 +129,12 @@ var app = new Vue({
                 case "playsound":
                     let sound = new Audio("/audio/" + msg.data + ".mp3");
                     sound.play();
+                    break;
+                case "notification":
+                    this.notification = msg.data;
+                    setTimeout(() => {
+                        this.notification = "";
+                    }, 5000)
                     break;
             }
         },

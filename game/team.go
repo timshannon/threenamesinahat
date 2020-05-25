@@ -68,3 +68,9 @@ func (t *Team) playSound(sound string) {
 		p.playSound(sound)
 	}
 }
+
+func (t *Team) sendNotification(notification string) {
+	for _, p := range t.Players {
+		p.sendNotification(notification)
+	}
+}
