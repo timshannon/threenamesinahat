@@ -156,28 +156,18 @@ input.game-code {
     opacity: 0;
 }
 
-
 .notification {
-    position: absolute;
-    top: 50%;
+    transition: opacity 235ms ease-in-out 0s;
+    background: rgba(0,0,0,.6);
+    bottom: 0;
+    flex: 1 1 auto;
     left: 0;
+    opacity: 1;
+    position: fixed;
     right: 0;
-    margin: auto;
-    width: 100%;
+    text-align: left;
+    top: 0;
+    word-wrap: break-word;
+    z-index: 12;
     padding: 1rem;
-    z-index: 100;
-    max-width: 768px;
-}
-
-.notification-enter-active, .stage-change-leave-active {
-    transition: all .2s ease;
-    transform-style: preserve-3d;
-}
-
-.notification-enter  {
-    transform: translateY(100%);
-}
-.notification-leave-to {
-    transform: translateY(-100%);
-    opacity: 0;
 }

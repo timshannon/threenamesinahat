@@ -341,12 +341,16 @@ func (g *Game) startTimer(seconds int, tick func(), finish func(), timeout func(
 			g.Timer.durationLeft -= passed
 			g.Timer.Left = int(g.Timer.durationLeft / time.Second)
 			g.Unlock()
-			tick()
+			if tick != nil {
+				tick()
+			}
 		}, func() {
 			g.Lock()
 			g.Timer.stop = nil
 			g.Unlock()
-			finish()
+			if finish != nil {
+				finish()
+			}
 		}, timeout)
 	}()
 }

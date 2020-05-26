@@ -7,7 +7,7 @@
     <body>
         <div id="game" data-code="[[.Code]]" v-cloak>
             <transition name="notification" mode="out-in">
-                <div v-if="notification" class="notification">
+                <div v-if="notification" class="notification" @click="notification=''">
                     <div class="alert alert-secondary dismissible">
                         {{notification}}
                         <label @click="notification=''" class="btn-close">X</label>

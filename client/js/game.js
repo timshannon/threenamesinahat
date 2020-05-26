@@ -132,9 +132,6 @@ var app = new Vue({
                     break;
                 case "notification":
                     this.notification = msg.data;
-                    setTimeout(() => {
-                        this.notification = "";
-                    }, 5000)
                     break;
             }
         },
