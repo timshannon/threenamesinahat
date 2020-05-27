@@ -24,6 +24,7 @@ var app = new Vue({
         currentName: "",
         stealCheck: false,
         notification: "",
+        startTurnReady: false,
     },
     computed: {
         leader: function () {
@@ -130,6 +131,8 @@ var app = new Vue({
                     let sound = new Audio("/audio/" + msg.data + ".mp3");
                     sound.play();
                     break;
+                case "startcheck":
+                    this.startTurnReady = true;
                 case "notification":
                     this.notification = msg.data;
                     break;
@@ -167,6 +170,10 @@ var app = new Vue({
         },
         send: function (type, data) {
             this.socket.send({ type: type, data: data });
+        },
+        startTurn: function () {
+            this.send("startturn");
+            this.startTurnReady = false;
         },
         setNamesPerPlayer: function (increment) {
             this.game.namesPerPlayer += increment;

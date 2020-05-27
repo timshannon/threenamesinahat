@@ -32,8 +32,8 @@ type Player struct {
 func newPlayer(name string, game *Game) *Player {
 	p := &Player{
 		Name:     name,
-		Send:     make(chan Msg, 2),
-		Receive:  make(chan Msg, 2),
+		Send:     make(chan Msg, 5),
+		Receive:  make(chan Msg, 5),
 		chanPing: make(chan bool),
 		game:     game,
 	}
@@ -92,16 +92,16 @@ func recieve(p *Player) {
 func (p *Player) ok(err error) bool {
 	if err != nil {
 		if fail.IsFailure(err) {
-			p.Send <- Msg{
+			p.SendMsg(Msg{
 				Type: "error",
 				Data: err.Error(),
-			}
+			})
 		} else {
 			log.Printf("Internal Error: %s", err)
-			p.Send <- Msg{
+			p.SendMsg(Msg{
 				Type: "error",
 				Data: "An internal error has occured, please start a new game",
-			}
+			})
 		}
 		return true
 	}
@@ -109,19 +109,14 @@ func (p *Player) ok(err error) bool {
 }
 
 func (p *Player) update(state gameState) {
-	go func() {
-		if p == nil {
-			return
-		}
-		p.Send <- Msg{
-			Type: "state",
-			Data: state,
-		}
-	}()
+	p.SendMsg(Msg{
+		Type: "state",
+		Data: state,
+	})
 }
 
 func (p *Player) ping() bool {
-	go func() { p.Send <- Msg{Type: "ping"} }()
+	go func() { p.SendMsg(Msg{Type: "ping"}) }()
 
 	select {
 	case <-time.After(clientTimeout):
@@ -185,26 +180,36 @@ func (p *Player) clearNames() {
 }
 
 func (p *Player) playSound(sound string) {
-	go func() {
-		if p == nil {
-			return
-		}
-
-		p.Send <- Msg{
-			Type: "playsound",
-			Data: sound,
-		}
-	}()
+	p.SendMsg(Msg{
+		Type: "playsound",
+		Data: sound,
+	})
 }
 
 func (p *Player) sendNotification(notification string) {
+	p.SendMsg(Msg{
+		Type: "notification",
+		Data: notification,
+	})
+}
+
+func (p *Player) Remove() {
+	if p == nil {
+		return
+	}
+	p.Lock()
+	defer p.Unlock()
+	if p.game == nil {
+		return
+	}
+	p.game.removePlayer(p.Name)
+}
+
+func (p *Player) SendMsg(msg Msg) {
 	go func() {
 		if p == nil {
 			return
 		}
-		p.Send <- Msg{
-			Type: "notification",
-			Data: notification,
-		}
+		p.Send <- msg
 	}()
 }

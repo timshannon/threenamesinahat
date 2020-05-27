@@ -5,6 +5,7 @@
 package game
 
 import (
+	"encoding/json"
 	"math/rand"
 	"sync"
 	"time"
@@ -80,6 +81,12 @@ type gameState struct {
 		Team1Score int `json:"team1Score"`
 		Team2Score int `json:"team2Score"`
 	} `json:"stats"`
+}
+
+func (g *Game) MarshalJSON() ([]byte, error) {
+	g.RLock()
+	defer g.RUnlock()
+	return json.Marshal(g.gameState)
 }
 
 func (g *Game) join(name string) (*Player, error) {
@@ -161,8 +168,10 @@ func (g *Game) updatePlayers() {
 
 // same as method, except game lock is already managed
 func updatePlayers(g *Game) {
-	g.Team1.updatePlayers(g.gameState)
-	g.Team2.updatePlayers(g.gameState)
+	state := g.gameState
+
+	g.Team1.updatePlayers(state)
+	g.Team2.updatePlayers(state)
 }
 
 func (g *Game) startGame(who *Player) error {
@@ -276,6 +285,25 @@ func cleanPlayers(g *Game) {
 
 	if !g.Leader.ping() {
 		g.Leader = g.Team1.Players[0]
+	}
+}
+
+func (g *Game) removePlayer(name string) {
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+	if !g.Team1.removePlayer(name) {
+		g.Team2.removePlayer(name)
+	}
+
+	if len(g.Team1.Players) < 2 || len(g.Team2.Players) < 2 {
+		if g.Stage != stagePregame && g.Stage != stageEnd {
+			reset(g, "Not enough players to continue")
+			updatePlayers(g)
+		}
+		return
 	}
 }
 
@@ -420,6 +448,7 @@ func loadNames(g *Game) {
 func nextPlayerTurn(g *Game) {
 	defer func() {
 		g.ClueGiver.playSound(soundNotify)
+		g.ClueGiver.SendMsg(Msg{Type: "startcheck"})
 	}()
 
 	cleanPlayers(g)
@@ -473,15 +502,13 @@ func (g *Game) startTurn(p *Player) error {
 		g.RUnlock()
 		g.updatePlayers()
 	}, func() {
-		g.Lock()
-		defer func() {
-			g.Unlock()
-			g.updatePlayers()
-		}()
 		if g.canSteal {
-			steal(g)
+			g.steal()
 		} else {
+			g.Lock()
 			nextPlayerTurn(g)
+			g.updatePlayers()
+			g.Unlock()
 		}
 	}, func() {
 		team.playSound(soundTimerAlarm)
@@ -490,7 +517,7 @@ func (g *Game) startTurn(p *Player) error {
 	if len(g.nameList) == 0 {
 		return nil
 	}
-	p.Send <- Msg{Type: "name", Data: p.game.nameList[0]}
+	p.SendMsg(Msg{Type: "name", Data: p.game.nameList[0]})
 
 	return nil
 }
@@ -534,18 +561,29 @@ func (g *Game) nextName(p *Player) error {
 		return nil
 	}
 
-	p.Send <- Msg{Type: "name", Data: g.nameList[0]}
+	p.SendMsg(Msg{Type: "name", Data: g.nameList[0]})
 	return nil
 }
 
 // send final answer vote button to stealing team
 // if entire team responds final answer before timer runs out, then ClueGiver gets to
 // set if they got it right or not
-func steal(g *Game) {
+func (g *Game) steal() {
+	g.Lock()
+	defer func() {
+		g.Unlock()
+		g.updatePlayers()
+	}()
+
 	if g.Stage != stagePlaying {
 		return
 	}
 	g.Stage = stageStealing
+
+	g.Unlock()
+	// update to steal stage immediately
+	g.updatePlayers()
+	g.Lock()
 	team := &g.Team1
 	if g.clueGiverTrack.team1 {
 		team = &g.Team2
@@ -566,7 +604,7 @@ func steal(g *Game) {
 		nextPlayerTurn(g)
 	})
 
-	g.ClueGiver.Send <- Msg{Type: "stealcheck"}
+	g.ClueGiver.SendMsg(Msg{Type: "stealcheck"})
 }
 
 func (g *Game) stealConfirm(p *Player, correct bool) error {

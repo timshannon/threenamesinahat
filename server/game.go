@@ -75,6 +75,7 @@ func gameSocket(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		websocket.WriteJSON(ws, &game.Msg{Type: "error", Data: err.Error()})
+		player.Remove()
 		ws.Close()
 		return
 	}
@@ -84,6 +85,7 @@ func gameSocket(w http.ResponseWriter, r *http.Request) {
 			err := websocket.WriteJSON(ws, msg)
 			if err != nil {
 				log.Printf("Error in game %s sending to player %s: %s", gameCode, playerName, err)
+				player.Remove()
 				ws.Close()
 				return
 			}
@@ -94,6 +96,7 @@ func gameSocket(w http.ResponseWriter, r *http.Request) {
 		err = websocket.ReadJSON(ws, m)
 		if err != nil {
 			log.Printf("Error recieving on web socket: %s", err)
+			player.Remove()
 			ws.Close()
 			return
 		}

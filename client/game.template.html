@@ -209,7 +209,7 @@
 <div>
     <div v-if="isClueGiver">
         <button v-if="currentName && game.timer.left" class="btn-block btn-large" @click="send('nextname')">Next Name</button>
-        <button v-else class="btn-block btn-large btn-success" @click="send('startturn')">Start</button>
+        <button v-else-if="startTurnReady" class="btn-block btn-large btn-success" @click="startTurn">Start</button>
     </div>
     <div v-else>
         <div v-if="isGuessing && game.timer.left> 0" class="alert alert-primary">Try to guess the name!</div>

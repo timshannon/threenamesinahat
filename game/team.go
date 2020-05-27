@@ -44,6 +44,15 @@ func (t *Team) updatePlayers(state gameState) {
 	}
 }
 
+func (t *Team) copyPlayers() []*Player {
+	players := make([]*Player, len(t.Players))
+	for i := range t.Players {
+		players[i] = *(&t.Players[i])
+	}
+
+	return players
+}
+
 func (t *Team) cleanPlayers() {
 	var remove []string
 	for i := range t.Players {
