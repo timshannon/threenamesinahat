@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        [[template "header"]]
+        <title>About Three Names in a Hat</title>
+    </head>
+    <body>
+        <div class="game-container">
+            <div>
+                <h3 class="margin-none">Three Names in a Hat</h3>
+            </div>
+            <div>
+                <p>
+                    This simple party game is one my friends and family always enjoy playing. However the recent
+                    Covid-19 world-wide pandemic has made playing party games a little difficult. I felt it was the
+                    perfect quarantine project to turn this simple party game into one that could be played remotely
+                    while we all are social distancing.
+
+                </p>
+                <a href="[[.IssueLink]]" class="paper-btn">Submit a Bug</a>
+                <a href="https://github.com/timshannon/threenamesinahat/" class="paper-btn">Source Code</a>
+                <h4>Attribution</h4>
+                <div class="attribution">
+                    [[range .Attribution]]
+                    <a class="card margin" href="[[.URL]]" target="_blank">
+                        <div class="card-body">
+                            <h4 class="card-title">[[.Name]]</h4>
+                            <h5 class="card-subtitle text-muted">([[.LicenseType]])</h5>
+                            <p class="card-text">
+                                [[.Author]]
+                            </p>
+                        </div>
+                    </a>
+                    [[end]]
+                </div>
+            </div>
+
+            [[template "footer"]]
+        </div>
+    </body>
+</html>
