@@ -25,6 +25,26 @@ var app = new Vue({
         stealCheck: false,
         notification: "",
         startTurnReady: false,
+        nameHints: [
+            "Someone you're playing with",
+            "A family member",
+            "A singer",
+            "A president",
+            "An author",
+            "A movie star",
+            "The name of a tv character",
+            "A news anchor",
+            "A famous scientist",
+            "A historical figure",
+            "A character from a book",
+            "A children's tv show character",
+            "A daytime tv talk-show host",
+            "A celebrity",
+            "A pet's name",
+            "A famous artist",
+            "A director",
+            "A famous chef",
+        ],
     },
     computed: {
         leader: function () {
@@ -64,7 +84,6 @@ var app = new Vue({
         },
         timerStyle: function () {
             if (this.game && this.game.timer) {
-                // TODO add beating animation
                 let ratio = this.game.timer.left / this.game.timer.seconds;
                 if (ratio < .25) {
                     return "danger";
@@ -74,6 +93,22 @@ var app = new Vue({
                 }
             }
             return "success";
+        },
+        nameHint: function () {
+            if (this.game && this.game.timer && this.game.stage === "setup") {
+                // wait 5 seconds, then display name hints evenly across the remaining timer time
+                const firstHintDelay = 5;
+                let passed = Math.round(this.game.timer.seconds - this.game.timer.left);
+                if (passed < firstHintDelay) {
+                    return "";
+                }
+
+                let partition = (this.game.timer.seconds - firstHintDelay) / this.nameHints.length;
+                let index = Math.round(this.game.timer.left / partition);
+
+                return this.nameHints[index];
+            }
+            return "";
         },
         team: function () {
             if (!this.game) { return null; }
@@ -202,6 +237,9 @@ var app = new Vue({
 
             if (oldState.stage !== newState.stage) {
                 this.currentName = "";
+                if (newState.stage === "setup") {
+                    shuffle(this.nameHints);
+                }
             }
         },
     },
@@ -273,4 +311,15 @@ function GameSocket(onmessage) {
             }, this.retryPoll);
         },
     };
+}
+
+function shuffle(a) {
+    var j, x, i;
+    for (i = a.length - 1; i > 0; i--) {
+        j = Math.floor(Math.random() * (i + 1));
+        x = a[i];
+        a[i] = a[j];
+        a[j] = x;
+    }
+    return a;
 }

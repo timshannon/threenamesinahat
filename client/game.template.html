@@ -161,8 +161,8 @@
 		<h3 v-else>Enter {{namesLeft}} more names</h3>
 		<form @submit.prevent="submitName">
 			<div class="form-group large">
-				<p>Pick a name everyone in the game would recognize</p>
-				<!-- TODO: add more hints as timer ticks -->
+				<p v-if="nameHint">Hint: {{nameHint}}</p>
+				<p v-else>Choose a name everyone in the game would recognize</p>
 				<input class="input-block"
 					v-model="addName"
 					v-focus
