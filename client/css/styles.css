@@ -182,3 +182,11 @@ input.game-code {
     text-decoration: none;
     background: none;
 }
+
+.awards {
+    padding: 1rem;
+}
+
+.awards > div {
+    padding-bottom: 1.25rem;
+}

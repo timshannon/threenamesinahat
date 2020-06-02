@@ -113,6 +113,7 @@ var app = new Vue({
             switch (msg.type) {
                 case "state":
                     this.loading = false;
+                    this.stateChange(msg.data, this.game);
                     this.game = msg.data;
                     break;
                 case "error":
@@ -195,6 +196,13 @@ var app = new Vue({
         },
         reset: function () {
             this.send("reset");
+        },
+        stateChange(newState, oldState) {
+            if (!newState || !oldState) { return; }
+
+            if (oldState.stage !== newState.stage) {
+                this.currentName = "";
+            }
         },
     },
     mounted: function () {

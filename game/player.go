@@ -132,10 +132,16 @@ func (p *Player) isLeader() bool {
 	return p.Name == p.game.Leader.Name
 }
 
-func (p *Player) names() []string {
+func (p *Player) names() []nameItem {
 	p.RLock()
 	defer p.RUnlock()
-	return p.Names
+	names := make([]nameItem, 0, len(p.Name))
+
+	for i := range p.Names {
+		names = append(names, nameItem{name: p.Names[i], player: p.Name})
+	}
+
+	return names
 }
 
 func (p *Player) addName(name string) error {

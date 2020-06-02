@@ -6,6 +6,7 @@ package game
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -50,6 +51,11 @@ type Game struct {
 	rand *rand.Rand
 }
 
+type nameItem struct {
+	name   string
+	player string
+}
+
 // gameState is copied out for JSON encoding
 // mutexes can't be copied, so sync access is managed in Game
 // RWMutex is Read Locked, then the state is copied to send to players
@@ -69,7 +75,8 @@ type gameState struct {
 	} `json:"timer"`
 	ClueGiver *Player `json:"clueGiver"`
 
-	nameList       []string
+	nameList []nameItem
+
 	clueGiverTrack struct {
 		team1Index int
 		team2Index int
@@ -77,9 +84,32 @@ type gameState struct {
 	}
 	canSteal bool
 	Stats    struct {
-		Winner     int `json:"winner"`
-		Team1Score int `json:"team1Score"`
-		Team2Score int `json:"team2Score"`
+		Winner        int `json:"winner"`
+		Team1Score    int `json:"team1Score"`
+		Team2Score    int `json:"team2Score"`
+		BestClueGiver struct {
+			Player  string `json:"player"`
+			Guesses int    `json:"guesses"`
+			stats   map[string]int
+		} `json:"bestClueGiver"` // who earned the most guess when giving clues
+		MostStolen struct {
+			Player string `json:"player"`
+			Steals int    `json:"steals"`
+			stats  map[string]int
+		} `json:"mostStolen"` // who had the most names stolen when it was their turn
+		EasiestName struct {
+			Name      string `json:"name"`
+			Submitter string `json:"submitter"`
+			GuessTime string `json:"guessTime"`
+			guessTime time.Duration
+		} `json:"easiestName"` // which name was guessed the fastest
+		HardestName struct {
+			Name      string `json:"name"`
+			Submitter string `json:"submitter"`
+			GuessTime string `json:"guessTime"`
+			guessTime time.Duration
+		} `json:"hardestName"` // which name took the longest to guess
+		nameTime time.Time
 	} `json:"stats"`
 }
 
@@ -278,8 +308,10 @@ func cleanPlayers(g *Game) {
 	g.Team2.cleanPlayers()
 
 	if len(g.Team1.Players) < 2 || len(g.Team2.Players) < 2 {
-		reset(g, "Not enough players to continue")
-		updatePlayers(g)
+		if g.Stage != stagePregame && g.Stage != stageEnd {
+			reset(g, "Not enough players to continue")
+			updatePlayers(g)
+		}
 		return
 	}
 
@@ -415,12 +447,6 @@ func (g *Game) startRound(round int) {
 	g.Round = round
 	g.canSteal = false
 	loadNames(g)
-	if round == 1 {
-		// reset player list
-		g.clueGiverTrack.team1 = false
-		g.clueGiverTrack.team1Index = -1
-		g.clueGiverTrack.team2Index = -1
-	}
 	nextPlayerTurn(g)
 }
 
@@ -517,7 +543,8 @@ func (g *Game) startTurn(p *Player) error {
 	if len(g.nameList) == 0 {
 		return nil
 	}
-	p.SendMsg(Msg{Type: "name", Data: p.game.nameList[0]})
+	g.Stats.nameTime = time.Now()
+	p.SendMsg(Msg{Type: "name", Data: p.game.nameList[0].name})
 
 	return nil
 }
@@ -541,6 +568,8 @@ func (g *Game) nextName(p *Player) error {
 		return nil
 	}
 
+	updateNameStats(g, false)
+
 	g.nameList = g.nameList[1:]
 	if g.clueGiverTrack.team1 {
 		g.Stats.Team1Score++
@@ -561,8 +590,31 @@ func (g *Game) nextName(p *Player) error {
 		return nil
 	}
 
-	p.SendMsg(Msg{Type: "name", Data: g.nameList[0]})
+	p.SendMsg(Msg{Type: "name", Data: g.nameList[0].name})
 	return nil
+}
+
+func updateNameStats(g *Game, steal bool) {
+	if steal {
+		g.Stats.MostStolen.stats[g.ClueGiver.Name]++
+	} else {
+		g.Stats.BestClueGiver.stats[g.ClueGiver.Name]++
+	}
+	diff := time.Now().Sub(g.Stats.nameTime)
+	name := g.nameList[0]
+
+	if diff > g.Stats.HardestName.guessTime {
+		g.Stats.HardestName.guessTime = diff
+		g.Stats.HardestName.Name = name.name
+		g.Stats.HardestName.Submitter = name.player
+		g.Stats.HardestName.GuessTime = fmt.Sprintf("%9.1f seconds", diff.Round(time.Millisecond).Seconds())
+	}
+	if diff < g.Stats.EasiestName.guessTime || g.Stats.EasiestName.guessTime == 0 {
+		g.Stats.EasiestName.guessTime = diff
+		g.Stats.EasiestName.Name = name.name
+		g.Stats.EasiestName.Submitter = name.player
+		g.Stats.EasiestName.GuessTime = fmt.Sprintf("%9.1f seconds", diff.Round(time.Millisecond).Seconds())
+	}
 }
 
 // send final answer vote button to stealing team
@@ -623,6 +675,7 @@ func (g *Game) stealConfirm(p *Player, correct bool) error {
 	}
 
 	if correct {
+		updateNameStats(g, true)
 		g.nameList = g.nameList[1:]
 		if g.clueGiverTrack.team1 {
 			g.Stats.Team2Score++
@@ -667,6 +720,20 @@ func (g *Game) endGame() {
 		g.Team1.playSound(soundGameLose)
 	}
 
+	for player, guesses := range g.Stats.BestClueGiver.stats {
+		if guesses > g.Stats.BestClueGiver.Guesses {
+			g.Stats.BestClueGiver.Guesses = guesses
+			g.Stats.BestClueGiver.Player = player
+		}
+	}
+
+	for player, steals := range g.Stats.MostStolen.stats {
+		if steals > g.Stats.MostStolen.Steals {
+			g.Stats.MostStolen.Steals = steals
+			g.Stats.MostStolen.Player = player
+		}
+	}
+
 }
 
 func (g *Game) reset(p *Player, reason string) error {
@@ -690,6 +757,7 @@ func (g *Game) reset(p *Player, reason string) error {
 func reset(g *Game, reason string) {
 	stopTimer(g)
 	g.Stage = stagePregame
+	g.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 	g.Round = 0
 	g.ClueGiver = nil
 	g.clueGiverTrack.team1 = false
@@ -702,6 +770,19 @@ func reset(g *Game, reason string) {
 	g.Stats.Winner = 0
 	g.Stats.Team1Score = 0
 	g.Stats.Team2Score = 0
+	g.Stats.BestClueGiver.Player = ""
+	g.Stats.BestClueGiver.Guesses = 0
+	g.Stats.BestClueGiver.stats = make(map[string]int)
+	g.Stats.MostStolen.Player = ""
+	g.Stats.MostStolen.Steals = 0
+	g.Stats.MostStolen.stats = make(map[string]int)
+	g.Stats.EasiestName.Name = ""
+	g.Stats.EasiestName.Submitter = ""
+	g.Stats.EasiestName.GuessTime = ""
+	g.Stats.HardestName.Name = ""
+	g.Stats.HardestName.Submitter = ""
+	g.Stats.HardestName.GuessTime = ""
+
 	if reason != "" {
 		g.Team1.sendNotification(reason)
 		g.Team2.sendNotification(reason)

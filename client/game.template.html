@@ -301,8 +301,33 @@
 			<p class="text-medium">{{game.stats.team2Score}}</p>
 		</div>
 	</div>
+	<div class="awards border border-3 border-primary">
+		<div><span class="badge secondary">Best Clue Giver</span>
+			<p>
+				<strong class="text-secondary">{{game.stats.bestClueGiver.player}}</strong> with
+				{{game.stats.bestClueGiver.guesses}} clues guessed
+			</p>
+		</div>
+		<div v-if="game.stats.mostStolen.player"><span class="badge secondary">Most Stolen From</span>
+			<p>
+				<strong class="text-secondary">{{game.stats.mostStolen.player}}</strong> with {{game.stats.mostStolen.steals}}
+				names stolen
+			</p>
+		</div>
+		<div><span class="badge secondary">Hardest Name</span>
+			<p>
+				<strong class="text-secondary">{{game.stats.hardestName.name}}</strong> took {{game.stats.hardestName.guessTime}}
+				to guess and was submitted by <strong class="text-secondary">{{game.stats.hardestName.submitter}}</strong></p>
+		</div>
+		<div><span class="badge secondary">Easiest Name</span>
+			<p>
+				<strong class="text-secondary">{{game.stats.easiestName.name}}</strong> took {{game.stats.easiestName.guessTime}}
+				to guess and was submitted by <strong class="text-secondary">{{game.stats.easiestName.submitter}}</strong>
+			</p>
+		</div>
+	</div>
 </div>
-<div>
+<div class="margin-top">
 	<button v-if="leader" class="btn-large btn-success" @click="reset">Play again?</button>
 </div>
 [[end]]
