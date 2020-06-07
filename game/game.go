@@ -288,15 +288,6 @@ func (g *Game) startGame(who *Player) error {
 	return nil
 }
 
-func (g *Game) cleanPlayers() {
-	g.Lock()
-	defer func() {
-		g.Unlock()
-		g.updatePlayers()
-	}()
-	cleanPlayers(g)
-}
-
 func (g *Game) IsDead() bool {
 	g.RLock()
 	defer g.RUnlock()
@@ -320,29 +311,12 @@ func cleanPlayers(g *Game) {
 	}
 }
 
-func (g *Game) removePlayer(name string) {
-	g.Lock()
-	defer func() {
-		g.Unlock()
-		g.updatePlayers()
-	}()
-	if !g.Team1.removePlayer(name) {
-		g.Team2.removePlayer(name)
-	}
-
-	if len(g.Team1.Players) < 2 || len(g.Team2.Players) < 2 {
-		if g.Stage != stagePregame && g.Stage != stageEnd {
-			reset(g, "Not enough players to continue")
-			updatePlayers(g)
-		}
-		return
-	}
-}
-
 func (g *Game) switchTeams(who *Player) {
 	g.Lock()
+	who.Lock()
 	defer func() {
 		g.Unlock()
+		who.Unlock()
 		g.updatePlayers()
 	}()
 
@@ -420,7 +394,6 @@ func (g *Game) changeRound(round int) {
 	g.Lock()
 	defer g.Unlock()
 
-	cleanPlayers(g)
 	if g.Stage == stagePregame {
 		// game got reset
 		return
@@ -473,15 +446,14 @@ func loadNames(g *Game) {
 
 func nextPlayerTurn(g *Game) {
 	defer func() {
+		if !g.ClueGiver.ping() {
+			reset(g, fmt.Sprintf("Player %s is not responding, cannot continue game", g.ClueGiver.Name))
+			cleanPlayers(g)
+			return
+		}
 		g.ClueGiver.playSound(soundNotify)
 		g.ClueGiver.SendMsg(Msg{Type: "startcheck"})
 	}()
-
-	cleanPlayers(g)
-	if g.Stage == stagePregame {
-		// game got reset
-		return
-	}
 
 	g.Stage = stagePlaying
 	shuffleNames(g)

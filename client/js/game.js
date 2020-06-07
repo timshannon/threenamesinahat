@@ -142,6 +142,10 @@ var app = new Vue({
             if (!this.game || !this.game.clueGiver) { return null; }
             return this.game.clueGiver.name === this.playerName;
         },
+        gameStarted: function () {
+            if (!this.game) { return false; }
+            return this.game.stage !== "pregame";
+        },
     },
     methods: {
         receive: function (msg) {
@@ -232,7 +236,7 @@ var app = new Vue({
         reset: function () {
             this.send("reset");
         },
-        stateChange(newState, oldState) {
+        stateChange: function (newState, oldState) {
             if (!newState || !oldState) { return; }
 
             if (oldState.stage !== newState.stage) {
@@ -242,11 +246,17 @@ var app = new Vue({
                 }
             }
         },
+        reconnect: function () {
+            if (this.playerName && this.gameStarted) {
+                console.log("reconnect");
+                this.join();
+            }
+        },
     },
     mounted: function () {
         this.playerName = localStorage.getItem("playerName");
         this.code = document.getElementById("game").getAttribute("data-code");
-        this.socket = GameSocket(this.receive);
+        this.socket = GameSocket(this.receive, this.reconnect);
         this.socket.connect()
             .catch((err) => {
                 this.error = "Error connecting to the game server: " + err;
@@ -254,8 +264,8 @@ var app = new Vue({
     },
 })
 
-function GameSocket(onmessage) {
-    const retryPoll = 3000;
+function GameSocket(onmessage, onreconnect) {
+    const retryPoll = 1500;
     let url = window.location.origin.toString().replace("http://", "ws://").replace("https://", "wss://") + "/game";
     return {
         connect() {
@@ -304,6 +314,9 @@ function GameSocket(onmessage) {
         retry() {
             setTimeout(() => {
                 this.connect()
+                    .then(() => {
+                        onreconnect()
+                    })
                     .catch((err) => {
                         console.log("Web Socket Errored, retrying: ", err);
                         this.retry();

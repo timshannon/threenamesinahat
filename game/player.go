@@ -5,6 +5,7 @@
 package game
 
 import (
+	"encoding/json"
 	"log"
 	"strings"
 	"sync"
@@ -13,13 +14,12 @@ import (
 	"github.com/timshannon/threenamesinahat/fail"
 )
 
-const clientTimeout = 1 * time.Second
+const clientTimeout = 3 * time.Second
 
 // Player keeps track of a given player as well as is the communication channel
 type Player struct {
 	sync.RWMutex
-	Name  string   `json:"name"`
-	Names []string `json:"names"`
+	playerState
 
 	chanPing chan bool
 
@@ -29,9 +29,16 @@ type Player struct {
 	game *Game
 }
 
+type playerState struct {
+	Name  string   `json:"name"`
+	Names []string `json:"names"`
+}
+
 func newPlayer(name string, game *Game) *Player {
 	p := &Player{
-		Name:     name,
+		playerState: playerState{
+			Name: name,
+		},
 		Send:     make(chan Msg, 5),
 		Receive:  make(chan Msg, 5),
 		chanPing: make(chan bool),
@@ -199,18 +206,6 @@ func (p *Player) sendNotification(notification string) {
 	})
 }
 
-func (p *Player) Remove() {
-	if p == nil {
-		return
-	}
-	p.Lock()
-	defer p.Unlock()
-	if p.game == nil {
-		return
-	}
-	p.game.removePlayer(p.Name)
-}
-
 func (p *Player) SendMsg(msg Msg) {
 	go func() {
 		if p == nil {
@@ -218,4 +213,10 @@ func (p *Player) SendMsg(msg Msg) {
 		}
 		p.Send <- msg
 	}()
+}
+
+func (p *Player) MarshalJSON() ([]byte, error) {
+	p.RLock()
+	defer p.RUnlock()
+	return json.Marshal(p.playerState)
 }

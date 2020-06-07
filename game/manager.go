@@ -58,7 +58,9 @@ func New(ipAddress string) (*Game, error) {
 }
 
 func cleanGame(g *Game) {
-	g.cleanPlayers()
+	g.Lock()
+	cleanPlayers(g)
+	g.Unlock()
 	if g.IsDead() {
 		removeGame(g)
 		return

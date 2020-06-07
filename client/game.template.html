@@ -67,6 +67,7 @@
 		<input class="input-block"
 			v-model="playerName"
 			v-focus
+			autocomplete="off"
 			type="text"
 			id="playerName">
 		<p v-if="playerNameErr" v-cloak class="text-danger">{{playerNameErr}}</p>
@@ -165,6 +166,7 @@
 				<p v-else>Choose a name everyone in the game would recognize</p>
 				<input class="input-block"
 					v-model="addName"
+					autocomplete="off"
 					v-focus
 					type="text"
 					id="addName">
