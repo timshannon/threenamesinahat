@@ -31,6 +31,7 @@ func setupRoutes() {
 	http.HandleFunc("/game", gameSocket)
 	get("/join", gzipHandler(templateHandler(emptyTemplate, "join.template.html")))
 	get("/about", gzipHandler(templateHandler(aboutTemplate, "about.template.html")))
+	get("/rules", gzipHandler(templateHandler(emptyTemplate, "rules.template.html")))
 }
 
 func get(pattern string, handler http.HandlerFunc)    { method("GET", pattern, handler) }

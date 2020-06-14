@@ -190,3 +190,7 @@ input.game-code {
 .awards > div {
     padding-bottom: 1.25rem;
 }
+
+.rules {
+    text-align: left;
+}
