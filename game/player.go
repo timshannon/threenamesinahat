@@ -89,6 +89,8 @@ func recieve(p *Player) {
 				p.ok(p.game.stealConfirm(p, false))
 			case "reset":
 				p.ok(p.game.reset(p, ""))
+			case "requestupdate":
+				p.update(p.game.gameState)
 			default:
 				p.ok(fail.New("%s is an invalid message type", m.Type))
 			}
@@ -206,6 +208,7 @@ func (p *Player) sendNotification(notification string) {
 	})
 }
 
+// SendMsg sends a Msg to a player
 func (p *Player) SendMsg(msg Msg) {
 	go func() {
 		if p == nil {
@@ -215,6 +218,7 @@ func (p *Player) SendMsg(msg Msg) {
 	}()
 }
 
+// MarshalJSON implements the JSON Marshaller interface to allow managing locks when the data is marshalled
 func (p *Player) MarshalJSON() ([]byte, error) {
 	p.RLock()
 	defer p.RUnlock()

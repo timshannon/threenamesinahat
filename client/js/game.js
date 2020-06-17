@@ -240,7 +240,9 @@ var app = new Vue({
             if (!newState || !oldState) { return; }
 
             if (oldState.stage !== newState.stage) {
-                this.currentName = "";
+                if (newState.stage !== "stealing") {
+                    this.currentName = "";
+                }
                 if (newState.stage === "setup") {
                     shuffle(this.nameHints);
                 }
@@ -248,7 +250,6 @@ var app = new Vue({
         },
         reconnect: function () {
             if (this.playerName && this.gameStarted) {
-                console.log("reconnect");
                 this.join();
             }
         },
@@ -258,9 +259,23 @@ var app = new Vue({
         this.code = document.getElementById("game").getAttribute("data-code");
         this.socket = GameSocket(this.receive, this.reconnect);
         this.socket.connect()
+            .then(() => {
+                this.socket.send({ type: "requestupdate" });
+            })
             .catch((err) => {
                 this.error = "Error connecting to the game server: " + err;
             });
+        document.addEventListener("visibilitychange", () => {
+            if (!document.hidden && this.socket.connection.readyState !== WebSocket.OPEN) {
+                this.socket.connect()
+                    .then(() => {
+                        this.reconnect();
+                    })
+                    .catch((err) => {
+                        this.error = "Error connecting to the game server: " + err;
+                    });
+            }
+        }, false);
     },
 })
 

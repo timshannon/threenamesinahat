@@ -14,6 +14,7 @@ import (
 	"github.com/timshannon/threenamesinahat/fail"
 )
 
+// Msg is the format data is sent back and for with to the client
 type Msg struct {
 	Type string      `json:"type"`
 	Data interface{} `json:"data"`
@@ -45,6 +46,7 @@ const (
 	soundGameLose   = "game-lose"
 )
 
+// Game tracks the state of a single Game
 type Game struct {
 	sync.RWMutex // manage the lock in methods, functions expect lock to be already managed
 	gameState
@@ -101,18 +103,21 @@ type gameState struct {
 			Name      string `json:"name"`
 			Submitter string `json:"submitter"`
 			GuessTime string `json:"guessTime"`
+			Round     int    `json:"round"`
 			guessTime time.Duration
 		} `json:"easiestName"` // which name was guessed the fastest
 		HardestName struct {
 			Name      string `json:"name"`
 			Submitter string `json:"submitter"`
 			GuessTime string `json:"guessTime"`
+			Round     int    `json:"round"`
 			guessTime time.Duration
 		} `json:"hardestName"` // which name took the longest to guess
 		nameTime time.Time
 	} `json:"stats"`
 }
 
+// MarshalJSON implements the json marchaller interface so that locks can be mananged when marshalling
 func (g *Game) MarshalJSON() ([]byte, error) {
 	g.RLock()
 	defer g.RUnlock()
@@ -288,6 +293,7 @@ func (g *Game) startGame(who *Player) error {
 	return nil
 }
 
+// IsDead tests if a game is no longer active and can be cleaned up
 func (g *Game) IsDead() bool {
 	g.RLock()
 	defer g.RUnlock()
@@ -297,14 +303,6 @@ func (g *Game) IsDead() bool {
 func cleanPlayers(g *Game) {
 	g.Team1.cleanPlayers()
 	g.Team2.cleanPlayers()
-
-	if len(g.Team1.Players) < 2 || len(g.Team2.Players) < 2 {
-		if g.Stage != stagePregame && g.Stage != stageEnd {
-			reset(g, "Not enough players to continue")
-			updatePlayers(g)
-		}
-		return
-	}
 
 	if !g.Leader.ping() {
 		g.Leader = g.Team1.Players[0]
@@ -446,11 +444,6 @@ func loadNames(g *Game) {
 
 func nextPlayerTurn(g *Game) {
 	defer func() {
-		if !g.ClueGiver.ping() {
-			reset(g, fmt.Sprintf("Player %s is not responding, cannot continue game", g.ClueGiver.Name))
-			cleanPlayers(g)
-			return
-		}
 		g.ClueGiver.playSound(soundNotify)
 		g.ClueGiver.SendMsg(Msg{Type: "startcheck"})
 	}()
@@ -579,12 +572,14 @@ func updateNameStats(g *Game, steal bool) {
 		g.Stats.HardestName.guessTime = diff
 		g.Stats.HardestName.Name = name.name
 		g.Stats.HardestName.Submitter = name.player
+		g.Stats.HardestName.Round = g.Round
 		g.Stats.HardestName.GuessTime = fmt.Sprintf("%9.1f seconds", diff.Round(time.Millisecond).Seconds())
 	}
 	if diff < g.Stats.EasiestName.guessTime || g.Stats.EasiestName.guessTime == 0 {
 		g.Stats.EasiestName.guessTime = diff
 		g.Stats.EasiestName.Name = name.name
 		g.Stats.EasiestName.Submitter = name.player
+		g.Stats.EasiestName.Round = g.Round
 		g.Stats.EasiestName.GuessTime = fmt.Sprintf("%9.1f seconds", diff.Round(time.Millisecond).Seconds())
 	}
 }
@@ -751,9 +746,11 @@ func reset(g *Game, reason string) {
 	g.Stats.EasiestName.Name = ""
 	g.Stats.EasiestName.Submitter = ""
 	g.Stats.EasiestName.GuessTime = ""
+	g.Stats.EasiestName.Round = 0
 	g.Stats.HardestName.Name = ""
 	g.Stats.HardestName.Submitter = ""
 	g.Stats.HardestName.GuessTime = ""
+	g.Stats.HardestName.Round = 0
 
 	if reason != "" {
 		g.Team1.sendNotification(reason)

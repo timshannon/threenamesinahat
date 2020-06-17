@@ -4,6 +4,7 @@
 
 package game
 
+// Team is a group of players
 type Team struct {
 	// Name    string    `json:"name"`
 	// Color   string    `json:"color"`

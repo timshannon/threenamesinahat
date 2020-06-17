@@ -68,6 +68,7 @@ func cleanGame(g *Game) {
 	time.AfterFunc(pollStatus, func() { cleanGame(g) })
 }
 
+// Find finds a game by the given Code
 func Find(code string) (*Game, bool) {
 	manager.RLock()
 	defer manager.RUnlock()
@@ -81,6 +82,7 @@ func Find(code string) (*Game, bool) {
 	return nil, false
 }
 
+// Join allows a player to join a game in progress
 func Join(code, name string) (*Player, error) {
 	g, ok := Find(code)
 	if !ok {
