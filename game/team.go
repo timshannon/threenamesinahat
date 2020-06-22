@@ -45,6 +45,16 @@ func (t *Team) updatePlayers(state gameState) {
 	}
 }
 
+func (t *Team) isDead() bool {
+	for i := range t.Players {
+		if t.Players[i].ping() {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (t *Team) copyPlayers() []*Player {
 	players := make([]*Player, len(t.Players))
 	for i := range t.Players {

@@ -297,14 +297,27 @@ func (g *Game) startGame(who *Player) error {
 func (g *Game) IsDead() bool {
 	g.RLock()
 	defer g.RUnlock()
-	return len(g.Team1.Players) == 0 && len(g.Team2.Players) == 0
+
+	if len(g.Team1.Players) == 0 && len(g.Team2.Players) == 0 {
+		return true
+	}
+
+	if !g.Team1.isDead() {
+		return false
+	}
+
+	if !g.Team2.isDead() {
+		return false
+	}
+
+	return true
 }
 
 func cleanPlayers(g *Game) {
 	g.Team1.cleanPlayers()
 	g.Team2.cleanPlayers()
 
-	if !g.Leader.ping() {
+	if !g.Leader.ping() && len(g.Team1.Players) > 0 {
 		g.Leader = g.Team1.Players[0]
 	}
 }
@@ -343,6 +356,10 @@ func stopTimer(g *Game) {
 
 func playTimerSound(g *Game, team *Team) {
 	ratio := float64(g.Timer.Left) / float64(g.Timer.Seconds)
+	if g.Timer.durationLeft < 500*time.Millisecond {
+		// make sure the half second ticking sound doens't overlap with the timer alorm sound
+		return
+	}
 	if ratio <= .25 {
 		// tick every half second
 		team.playSound(soundTick)
