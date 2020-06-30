@@ -54,6 +54,8 @@ func New(ipAddress string) (*Game, error) {
 	time.AfterFunc(pollStatus, func() { cleanGame(g) })
 
 	manager.games = append(manager.games, g)
+
+	log.Printf("Game %s created", g.Code)
 	return g, nil
 }
 

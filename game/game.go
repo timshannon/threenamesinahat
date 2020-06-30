@@ -7,6 +7,7 @@ package game
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -153,6 +154,7 @@ func (g *Game) join(name string) (*Player, error) {
 		return nil, fail.New("You cannot join a game in progress")
 	}
 
+	log.Printf("Player %s joined game %s", name, g.Code)
 	if len(g.Team1.Players) <= len(g.Team2.Players) {
 		player := g.Team1.addNewPlayer(name, g)
 		if g.Leader == nil && len(g.Team1.Players) == 1 {
@@ -284,12 +286,14 @@ func (g *Game) startGame(who *Player) error {
 			g.updatePlayers()
 			return
 		}
+
 		g.changeRound(1)
 	}, func() {
 		g.Team1.playSound(soundTimerAlarm)
 		g.Team2.playSound(soundTimerAlarm)
 	})
 
+	log.Printf("Game %s started", g.Code)
 	return nil
 }
 
@@ -718,6 +722,7 @@ func (g *Game) endGame() {
 		}
 	}
 
+	log.Printf("Game %s finished", g.Code)
 }
 
 func (g *Game) reset(p *Player, reason string) error {
